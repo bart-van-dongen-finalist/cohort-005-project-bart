@@ -5,6 +5,10 @@ Do these checks in this order before you report a change to `app/` as complete:
 1. `npm run typecheck`
 2. `npm run test`
 
+## Domain language
+
+Before you name a domain concept or write user-facing text, read `GLOSSARY.md` for the canonical word and the "Write user-facing text" section of `CODING_STANDARDS.md` for the style rules.
+
 ## When something breaks
 
 | Symptom                                         | Cause                                                                                                  |
