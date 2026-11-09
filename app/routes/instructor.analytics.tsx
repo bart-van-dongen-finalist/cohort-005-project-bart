@@ -144,7 +144,7 @@ type CourseProgressSummary = {
   enrolledCount: number;
   totalLessons: number;
   averageProgressPercent: number | null;
-  finishedCount: number;
+  completedCount: number;
 };
 
 type FunnelLesson = {
@@ -518,7 +518,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
       enrolledCount: perStudent.length,
       totalLessons,
       averageProgressPercent: null,
-      finishedCount: 0,
+      completedCount: 0,
     };
   }
 
@@ -531,7 +531,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
     enrolledCount: perStudent.length,
     totalLessons,
     averageProgressPercent: Math.round(totalPercent / perStudent.length),
-    finishedCount: perStudent.filter(
+    completedCount: perStudent.filter(
       (student) => student.completed >= totalLessons
     ).length,
   };
@@ -963,7 +963,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
         .all()
     : [];
 
-  // Drives the "publish your first course" empty state. The platform-wide view
+  // Drives the "create your first course" empty state. The platform-wide view
   // always has courses in it, so the prompt only makes sense for one named
   // instructor.
   const publishedRow =
@@ -1015,7 +1015,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
         ? null
         : getCourseRevenueByCountry(selectedCourseId, range),
     instructors,
-    unpublished: instructorId !== null && publishedRow === undefined,
+    hasPublishedCourse: instructorId === null || publishedRow !== undefined,
   };
 }
 
@@ -1254,10 +1254,10 @@ function CourseProgress({ progress }: { progress: CourseProgressSummary }) {
       <Card>
         <CardContent className="p-6">
           <div className="text-sm font-medium text-muted-foreground">
-            Students finished <span className="font-normal">· all time</span>
+            Students completed <span className="font-normal">· all time</span>
           </div>
           <div className="mt-2 text-3xl font-bold">
-            {progress.finishedCount}
+            {progress.completedCount}
           </div>
           {/* A count, and deliberately not a third percentage: several
               defensible completion rates exist, they disagree, and naming one
@@ -1518,7 +1518,7 @@ export default function InstructorAnalytics({
     quizzes,
     countries,
     instructors,
-    unpublished,
+    hasPublishedCourse,
     audience,
     buyers,
     unansweredComments,
@@ -1610,17 +1610,17 @@ export default function InstructorAnalytics({
         </div>
       </div>
 
-      {unpublished ? (
+      {!hasPublishedCourse ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Rocket className="mx-auto mb-4 size-12 text-muted-foreground" />
             <p className="font-medium">No published courses yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
               Analytics start with the first purchase of one of your courses.
-              Publish your first course to get going.
+              Create your first course to get going.
             </p>
             <Link to="/instructor/new" className="mt-6 inline-block">
-              <Button>Publish your first course</Button>
+              <Button>Create your first course</Button>
             </Link>
           </CardContent>
         </Card>
@@ -1923,7 +1923,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
           ? error.data
           : "Log in to continue.";
     } else if (error.status === 403) {
-      title = "Not allowed";
+      title = "Access denied";
       message =
         typeof error.data === "string"
           ? error.data

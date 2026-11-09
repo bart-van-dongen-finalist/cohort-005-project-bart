@@ -355,7 +355,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
             <Button>Go Home</Button>

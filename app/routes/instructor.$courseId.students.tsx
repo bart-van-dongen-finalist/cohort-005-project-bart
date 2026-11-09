@@ -275,7 +275,7 @@ export default function InstructorStudentRoster({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <Link to={`/instructor/${course.id}`} className="hover:text-foreground">
@@ -464,7 +464,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
             <Button>Go Home</Button>

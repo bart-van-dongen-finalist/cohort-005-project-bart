@@ -356,7 +356,7 @@ export default function InstructorComments({
           to={isAdmin ? "/admin/courses" : "/instructor"}
           className="hover:text-foreground"
         >
-          {isAdmin ? "Manage Courses" : "My Courses"}
+          {isAdmin ? "Manage courses" : "My courses"}
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">Comments</span>
@@ -419,7 +419,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       message =
         typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
-      title = "Not allowed";
+      title = "Access denied";
       message =
         typeof error.data === "string"
           ? error.data
@@ -443,7 +443,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/instructor">
-            <Button>My Courses</Button>
+            <Button>My courses</Button>
           </Link>
         </div>
       </div>

@@ -63,7 +63,7 @@ const navItems: NavItem[] = [
     roles: [UserRole.Student],
   },
   {
-    label: "My Courses",
+    label: "My courses",
     to: "/instructor",
     icon: <GraduationCap className="size-4" />,
     roles: [UserRole.Instructor],
@@ -87,7 +87,7 @@ const navItems: NavItem[] = [
     roles: [UserRole.Admin],
   },
   {
-    label: "Manage Courses",
+    label: "Manage courses",
     to: "/admin/courses",
     icon: <Shield className="size-4" />,
     roles: [UserRole.Admin],

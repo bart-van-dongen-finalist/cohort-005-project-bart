@@ -1629,7 +1629,7 @@ export default function InstructorCourseEditor({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">{course.title}</span>
@@ -1640,7 +1640,7 @@ export default function InstructorCourseEditor({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to My Courses
+        Back to my courses
       </Link>
 
       {/* Course Header with inline editing */}
@@ -2239,7 +2239,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
             <Button>Go Home</Button>

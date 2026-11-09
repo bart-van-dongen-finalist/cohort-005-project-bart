@@ -1150,7 +1150,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
               >
                 <Button variant="outline" size="sm">
                   <Github className="mr-1.5 size-4" />
-                  Open Code
+                  View code on GitHub
                 </Button>
               </a>
             )}
@@ -1714,7 +1714,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             <Button variant="outline">Browse Courses</Button>
           </Link>
           <Link to="/dashboard">
-            <Button>My Dashboard</Button>
+            <Button>Dashboard</Button>
           </Link>
         </div>
       </div>

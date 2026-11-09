@@ -65,7 +65,7 @@ function getEnrollmentCountForCourse(courseId: number) {
 
 export function meta() {
   return [
-    { title: "My Courses — Cadence" },
+    { title: "My courses — Cadence" },
     { name: "description", content: "Manage your courses" },
   ];
 }
@@ -182,12 +182,12 @@ export default function InstructorDashboard({
           Home
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">My Courses</span>
+        <span className="text-foreground">My courses</span>
       </nav>
 
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">My Courses</h1>
+          <h1 className="text-3xl font-bold">My courses</h1>
           <p className="mt-1 text-muted-foreground">
             Manage your courses and track enrollments
           </p>

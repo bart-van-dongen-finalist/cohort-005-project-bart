@@ -33,7 +33,7 @@ const settingsSchema = z.object({
 export function meta() {
   return [
     { title: "Settings — Cadence" },
-    { name: "description", content: "Edit your profile details" },
+    { name: "description", content: "Edit your profile" },
   ];
 }
 
@@ -151,7 +151,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="mt-1 text-muted-foreground">
-          Update your profile details
+          Update your profile
         </p>
       </div>
 

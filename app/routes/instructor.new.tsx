@@ -183,7 +183,7 @@ export default function InstructorNewCourse({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">New Course</span>
@@ -195,7 +195,7 @@ export default function InstructorNewCourse({
           className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="mr-1 size-4" />
-          Back to My Courses
+          Back to my courses
         </Link>
         <h1 className="text-3xl font-bold">Create New Course</h1>
         <p className="mt-1 text-muted-foreground">
@@ -358,7 +358,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
             <Button>Go Home</Button>

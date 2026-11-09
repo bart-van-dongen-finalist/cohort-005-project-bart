@@ -283,7 +283,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Dashboard</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="mt-1 text-muted-foreground">
           Track your learning progress
         </p>
@@ -414,7 +414,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                       >
                         <Button className="w-full" variant="outline">
                           <BookOpen className="mr-2 size-4" />
-                          Review Course
+                          Revisit course
                         </Button>
                       </Link>
                     </CardFooter>
