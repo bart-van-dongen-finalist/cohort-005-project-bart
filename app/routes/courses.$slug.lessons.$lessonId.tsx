@@ -53,7 +53,7 @@ import { renderMarkdown } from "~/lib/markdown.server";
 import { YouTubePlayer } from "~/components/youtube-player";
 import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
-import { COUNTRIES } from "~/lib/ppp";
+import { COUNTRIES } from "~/lib/regional-discount";
 import { parseFormData, parseParams } from "~/lib/validation";
 
 const lessonParamsSchema = z.object({
@@ -117,7 +117,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -760,10 +760,14 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
   }
 
-  // PPP Access Guard — resolved by getAccess, which treats a blocked user as
+  // Regional discount access guard — resolved by getAccess, which treats a blocked user as
   // having no access to the course's content at all.
-  const { pppBlocked, pppBlockedCountry, pppPurchaseCountry, canViewContent } =
-    access;
+  const {
+    regionalDiscountBlocked,
+    regionalDiscountBlockedCountry,
+    regionalDiscountPurchaseCountry,
+    canViewContent,
+  } = access;
 
   // Comments are confidential to the course: only people who can read the
   // lesson can read the comments on it.
@@ -859,9 +863,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     lastWatchPosition,
     watchProgress,
     lessonProgressMap,
-    pppBlocked,
-    pppBlockedCountry,
-    pppPurchaseCountry,
+    regionalDiscountBlocked,
+    regionalDiscountBlockedCountry,
+    regionalDiscountPurchaseCountry,
     comments,
     canViewContent,
     isStaff: access.isStaff,
@@ -1023,9 +1027,9 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
     lastWatchPosition,
     watchProgress,
     lessonProgressMap,
-    pppBlocked,
-    pppBlockedCountry,
-    pppPurchaseCountry,
+    regionalDiscountBlocked,
+    regionalDiscountBlockedCountry,
+    regionalDiscountPurchaseCountry,
     comments,
     canViewContent,
     isStaff,
@@ -1055,14 +1059,14 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
   const quizResult = quizFetcher.data?.quizResult ?? null;
   const isSubmittingQuiz = quizFetcher.state !== "idle";
 
-  if (pppBlocked) {
-    const purchaseCountryName = pppPurchaseCountry
-      ? (COUNTRIES.find((c) => c.code === pppPurchaseCountry)?.name ??
-        pppPurchaseCountry)
+  if (regionalDiscountBlocked) {
+    const purchaseCountryName = regionalDiscountPurchaseCountry
+      ? (COUNTRIES.find((c) => c.code === regionalDiscountPurchaseCountry)
+          ?.name ?? regionalDiscountPurchaseCountry)
       : "your original country";
-    const currentCountryName = pppBlockedCountry
-      ? (COUNTRIES.find((c) => c.code === pppBlockedCountry)?.name ??
-        pppBlockedCountry)
+    const currentCountryName = regionalDiscountBlockedCountry
+      ? (COUNTRIES.find((c) => c.code === regionalDiscountBlockedCountry)
+          ?.name ?? regionalDiscountBlockedCountry)
       : "a different country";
 
     return (
@@ -1071,13 +1075,13 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
           <ShieldAlert className="mx-auto mb-4 size-16 text-amber-500" />
           <h1 className="mb-3 text-2xl font-bold">Access Restricted</h1>
           <p className="mb-4 text-muted-foreground">
-            You purchased this course with a Purchasing Power Parity discount
-            while in <strong>{purchaseCountryName}</strong>, but you're
-            currently accessing from <strong>{currentCountryName}</strong>.
+            You bought this course with a Regional discount while in{" "}
+            <strong>{purchaseCountryName}</strong>, but you're currently
+            accessing from <strong>{currentCountryName}</strong>.
           </p>
           <p className="mb-6 text-sm text-muted-foreground">
-            PPP-discounted courses can only be accessed from the country where
-            the purchase was made. This helps keep courses affordable for
+            A course bought with a Regional discount can only be opened from the
+            country where it was bought. This helps keep courses affordable for
             students in lower-income regions.
           </p>
           <div className="flex items-center justify-center gap-3">

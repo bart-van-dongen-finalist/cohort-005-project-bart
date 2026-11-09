@@ -10,7 +10,7 @@ import {
 } from "~/db/schema";
 import { getCurrentUserId } from "~/lib/session";
 import { resolveCountry } from "~/lib/country.server";
-import { checkPppAccess } from "~/lib/ppp";
+import { checkRegionalDiscountAccess } from "~/lib/regional-discount";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -60,12 +60,12 @@ export type Access = {
   /** Staff: the owning Instructor or an Admin, who speak for the course. */
   isStaff: boolean;
   enrolled: boolean;
-  pppBlocked: boolean;
-  pppBlockedCountry: string | null;
-  pppPurchaseCountry: string | null;
+  regionalDiscountBlocked: boolean;
+  regionalDiscountBlockedCountry: string | null;
+  regionalDiscountPurchaseCountry: string | null;
   /**
    * May they read the course's content (lesson bodies, comments)?
-   * Staff always can. Students need an enrollment that isn't PPP-blocked.
+   * Staff always can. Students need an enrollment that their Regional discount does not block.
    */
   canViewContent: boolean;
 };
@@ -77,9 +77,9 @@ const SIGNED_OUT: Access = {
   isOwningInstructor: false,
   isStaff: false,
   enrolled: false,
-  pppBlocked: false,
-  pppBlockedCountry: null,
-  pppPurchaseCountry: null,
+  regionalDiscountBlocked: false,
+  regionalDiscountBlockedCountry: null,
+  regionalDiscountPurchaseCountry: null,
   canViewContent: false,
 };
 
@@ -99,8 +99,8 @@ export async function getAccess(
   const isStaff = isAdmin || isOwningInstructor;
   const enrolled = isUserEnrolled(userId, courseId);
 
-  // PPP only restricts students who bought at a discount — staff are exempt.
-  let ppp = {
+  // A Regional discount only restricts students who bought at a discount — staff are exempt.
+  let regionalDiscountAccess = {
     blocked: false,
     blockedCountry: null as string | null,
     purchaseCountry: null as string | null,
@@ -109,9 +109,9 @@ export async function getAccess(
   if (enrolled && !isStaff && course) {
     const purchase = findPurchase(userId, courseId);
     const currentCountry = await resolveCountry(request);
-    ppp = checkPppAccess(
+    regionalDiscountAccess = checkRegionalDiscountAccess(
       course.price,
-      course.pppEnabled,
+      course.regionalDiscountEnabled,
       purchase?.country ?? null,
       currentCountry
     );
@@ -124,10 +124,10 @@ export async function getAccess(
     isOwningInstructor,
     isStaff,
     enrolled,
-    pppBlocked: ppp.blocked,
-    pppBlockedCountry: ppp.blockedCountry,
-    pppPurchaseCountry: ppp.purchaseCountry,
-    canViewContent: isStaff || (enrolled && !ppp.blocked),
+    regionalDiscountBlocked: regionalDiscountAccess.blocked,
+    regionalDiscountBlockedCountry: regionalDiscountAccess.blockedCountry,
+    regionalDiscountPurchaseCountry: regionalDiscountAccess.purchaseCountry,
+    canViewContent: isStaff || (enrolled && !regionalDiscountAccess.blocked),
   };
 }
 

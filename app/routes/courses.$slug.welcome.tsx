@@ -33,7 +33,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,

@@ -80,7 +80,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -182,10 +182,13 @@ function updateCoursePrice(id: number, price: number) {
     .get();
 }
 
-function updateCoursePppEnabled(id: number, pppEnabled: boolean) {
+function updateCourseRegionalDiscountEnabled(
+  id: number,
+  regionalDiscountEnabled: boolean
+) {
   return db
     .update(courses)
-    .set({ pppEnabled, updatedAt: new Date().toISOString() })
+    .set({ regionalDiscountEnabled, updatedAt: new Date().toISOString() })
     .where(eq(courses.id, id))
     .returning()
     .get();
@@ -493,7 +496,10 @@ const courseEditorActionSchema = z.discriminatedUnion("intent", [
     status: z.nativeEnum(CourseStatus),
   }),
   z.object({ intent: z.literal("update-price"), price: z.string() }),
-  z.object({ intent: z.literal("update-ppp-enabled"), pppEnabled: z.string() }),
+  z.object({
+    intent: z.literal("update-regional-discount-enabled"),
+    regionalDiscountEnabled: z.string(),
+  }),
   z.object({
     intent: z.literal("add-module"),
     title: z.string().trim().min(1, "Module title cannot be empty."),
@@ -674,10 +680,11 @@ export async function action({ params, request }: Route.ActionArgs) {
     return { success: true, field: "price" };
   }
 
-  if (intent === "update-ppp-enabled") {
-    const pppEnabled = parsed.data.pppEnabled === "true";
-    updateCoursePppEnabled(courseId, pppEnabled);
-    return { success: true, field: "ppp-enabled" };
+  if (intent === "update-regional-discount-enabled") {
+    const regionalDiscountEnabled =
+      parsed.data.regionalDiscountEnabled === "true";
+    updateCourseRegionalDiscountEnabled(courseId, regionalDiscountEnabled);
+    return { success: true, field: "regional-discount-enabled" };
   }
 
   if (intent === "add-module") {
@@ -1460,7 +1467,7 @@ export default function InstructorCourseEditor({
   const lessonReorderFetcher = useFetcher();
   const salesCopyFetcher = useFetcher();
   const priceFetcher = useFetcher();
-  const pppFetcher = useFetcher();
+  const regionalDiscountFetcher = useFetcher();
 
   const [salesCopy, setSalesCopy] = useState(course.salesCopy);
   const salesCopyHasChanges = salesCopy !== course.salesCopy;
@@ -1518,13 +1525,19 @@ export default function InstructorCourseEditor({
   }, [priceFetcher.state, priceFetcher.data]);
 
   useEffect(() => {
-    if (pppFetcher.state === "idle" && pppFetcher.data?.success) {
-      toast.success("PPP setting updated.");
+    if (
+      regionalDiscountFetcher.state === "idle" &&
+      regionalDiscountFetcher.data?.success
+    ) {
+      toast.success("Regional discount setting updated.");
     }
-    if (pppFetcher.state === "idle" && pppFetcher.data?.error) {
-      toast.error(pppFetcher.data.error);
+    if (
+      regionalDiscountFetcher.state === "idle" &&
+      regionalDiscountFetcher.data?.error
+    ) {
+      toast.error(regionalDiscountFetcher.data.error);
     }
-  }, [pppFetcher.state, pppFetcher.data]);
+  }, [regionalDiscountFetcher.state, regionalDiscountFetcher.data]);
 
   function handleSalesCopySave() {
     salesCopyFetcher.submit(
@@ -1932,20 +1945,26 @@ export default function InstructorCourseEditor({
 
                   <div
                     className="flex items-center gap-2"
-                    title="Purchasing Power Parity: applies location-based discounts for students in lower-income countries"
+                    title="Regional discount: lowers the price for students in lower-income countries"
                   >
                     <Globe className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">PPP:</span>
+                    <span className="text-sm font-medium">
+                      Regional discount:
+                    </span>
                     <button
                       type="button"
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        course.pppEnabled ? "bg-primary" : "bg-muted"
+                        course.regionalDiscountEnabled
+                          ? "bg-primary"
+                          : "bg-muted"
                       }`}
                       onClick={() => {
-                        pppFetcher.submit(
+                        regionalDiscountFetcher.submit(
                           {
-                            intent: "update-ppp-enabled",
-                            pppEnabled: String(!course.pppEnabled),
+                            intent: "update-regional-discount-enabled",
+                            regionalDiscountEnabled: String(
+                              !course.regionalDiscountEnabled
+                            ),
                           },
                           { method: "post" }
                         );
@@ -1953,12 +1972,14 @@ export default function InstructorCourseEditor({
                     >
                       <span
                         className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
-                          course.pppEnabled ? "translate-x-6" : "translate-x-1"
+                          course.regionalDiscountEnabled
+                            ? "translate-x-6"
+                            : "translate-x-1"
                         }`}
                       />
                     </button>
                     <span className="text-xs text-muted-foreground">
-                      {course.pppEnabled ? "On" : "Off"}
+                      {course.regionalDiscountEnabled ? "On" : "Off"}
                     </span>
                   </div>
                 </div>

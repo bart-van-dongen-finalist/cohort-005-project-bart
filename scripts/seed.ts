@@ -2248,7 +2248,7 @@ This course is still in draft while the cluster examples are rewritten against t
 
   db.insert(schema.purchases)
     .values({
-      userId: students[1].id, // James — bought course 1 with PPP discount (India)
+      userId: students[1].id, // James — bought course 1 with a Regional discount (India)
       courseId: course1.id,
       amountPaid: 2500,
       country: "IN",
@@ -2423,7 +2423,7 @@ This course is still in draft while the cluster examples are rewritten against t
   ];
 
   const fullPriceCountries = ["US", "GB", "DE", "CA", "AU", "NL"];
-  const pppCountries = ["IN", "BR", "PH", "NG", "ID", "VN"];
+  const discountedCountries = ["IN", "BR", "PH", "NG", "ID", "VN"];
 
   const sold = new Set<string>();
   let generatedPurchases = 0;
@@ -2450,12 +2450,12 @@ This course is still in draft while the cluster examples are rewritten against t
     const target = available[Math.floor(random() * available.length)];
     sold.add(`${buyer.id}:${target.course.id}`);
 
-    // Two in five buy at a parity-adjusted price.
-    const ppp = random() < 0.4;
-    const country = ppp
-      ? pppCountries[Math.floor(random() * pppCountries.length)]
+    // Two in five buy at a Regional discount.
+    const regionallyDiscounted = random() < 0.4;
+    const country = regionallyDiscounted
+      ? discountedCountries[Math.floor(random() * discountedCountries.length)]
       : fullPriceCountries[Math.floor(random() * fullPriceCountries.length)];
-    const amountPaid = ppp
+    const amountPaid = regionallyDiscounted
       ? Math.round((target.course.price * 0.5) / 100) * 100
       : target.course.price;
 

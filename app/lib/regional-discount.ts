@@ -1,69 +1,69 @@
-// ─── PPP (Purchasing Power Parity) Config ───
-// Hardcoded tier definitions and country-to-tier mappings.
-// Tiers determine the discount percentage applied at purchase time.
+// ─── Regional discount ───
+// Hardcoded discount levels and the country-to-level mapping.
+// A country's level sets the discount percentage applied at purchase time.
 
-export const PPP_TIERS = {
-  1: { discount: 0, label: "Full Price" },
+export const REGIONAL_DISCOUNTS = {
+  1: { discount: 0, label: "Full price" },
   2: { discount: 0.3, label: "30% off" },
   3: { discount: 0.5, label: "50% off" },
   4: { discount: 0.7, label: "70% off" },
 } as const;
 
-export type PppTier = keyof typeof PPP_TIERS;
+export type RegionalDiscountLevel = keyof typeof REGIONAL_DISCOUNTS;
 
-const COUNTRY_TIER_MAP: Record<string, PppTier> = {
-  // Tier 1 — Full price
+const COUNTRY_DISCOUNT_LEVELS: Record<string, RegionalDiscountLevel> = {
+  // Level 1 — Full price
   US: 1, CA: 1, GB: 1, AU: 1, DE: 1, FR: 1, NL: 1, SE: 1, NO: 1, CH: 1, JP: 1, SG: 1,
-  // Tier 2 — 30% off
+  // Level 2 — 30% off
   PL: 2, MX: 2, BR: 2, TR: 2, TH: 2, MY: 2, CZ: 2, CL: 2,
-  // Tier 3 — 50% off
+  // Level 3 — 50% off
   IN: 3, CO: 3, AR: 3, ZA: 3, PH: 3, VN: 3, UA: 3, ID: 3,
-  // Tier 4 — 70% off
+  // Level 4 — 70% off
   NG: 4, PK: 4, BD: 4, EG: 4, KE: 4, ET: 4,
 };
 
-export function getTierForCountry(countryCode: string | null): PppTier {
+export function getRegionalDiscountLevel(countryCode: string | null): RegionalDiscountLevel {
   if (!countryCode) return 1;
-  return COUNTRY_TIER_MAP[countryCode.toUpperCase()] ?? 1;
+  return COUNTRY_DISCOUNT_LEVELS[countryCode.toUpperCase()] ?? 1;
 }
 
 export function getDiscountForCountry(countryCode: string | null): number {
-  const tier = getTierForCountry(countryCode);
-  return PPP_TIERS[tier].discount;
+  const level = getRegionalDiscountLevel(countryCode);
+  return REGIONAL_DISCOUNTS[level].discount;
 }
 
-export function calculatePppPrice(priceInCents: number, countryCode: string | null): number {
+export function calculateRegionalPrice(priceInCents: number, countryCode: string | null): number {
   const discount = getDiscountForCountry(countryCode);
   return Math.round(priceInCents * (1 - discount));
 }
 
-export function getCountryTierInfo(countryCode: string | null) {
-  const tier = getTierForCountry(countryCode);
-  const { discount, label } = PPP_TIERS[tier];
-  return { tier, discount, label };
+export function getDiscountLevelInfo(countryCode: string | null) {
+  const level = getRegionalDiscountLevel(countryCode);
+  const { discount, label } = REGIONAL_DISCOUNTS[level];
+  return { level, discount, label };
 }
 
 /**
- * Pure function to check if PPP access should be blocked.
+ * Pure function to check if a Regional discount blocks access.
  * Returns blocked=true when a discounted purchase is accessed from a different country.
  */
-export function checkPppAccess(
+export function checkRegionalDiscountAccess(
   coursePrice: number,
-  coursePppEnabled: boolean,
+  regionalDiscountEnabled: boolean,
   purchaseCountry: string | null,
   currentCountry: string | null
 ): { blocked: boolean; blockedCountry: string | null; purchaseCountry: string | null } {
   const result = { blocked: false, blockedCountry: null as string | null, purchaseCountry: null as string | null };
 
-  // Skip: free courses or PPP-disabled courses
-  if (coursePrice <= 0 || !coursePppEnabled) return result;
+  // Skip: free courses or courses without a Regional discount
+  if (coursePrice <= 0 || !regionalDiscountEnabled) return result;
 
   // Skip: no purchase country recorded
   if (!purchaseCountry) return result;
 
-  // Skip: full-price (Tier 1) purchases — no geographic restriction
-  const purchaseTier = getTierForCountry(purchaseCountry);
-  if (purchaseTier === 1) return result;
+  // Skip: full-price (level 1) purchases — no geographic restriction
+  const purchaseLevel = getRegionalDiscountLevel(purchaseCountry);
+  if (purchaseLevel === 1) return result;
 
   // Discounted purchase — verify country match
   if (currentCountry && currentCountry !== purchaseCountry) {

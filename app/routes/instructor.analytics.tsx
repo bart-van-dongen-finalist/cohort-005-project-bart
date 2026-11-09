@@ -37,7 +37,7 @@ import {
   users,
 } from "~/db/schema";
 import { splitRevenue, type AnalyticsRange } from "~/lib/analytics";
-import { getDiscountForCountry } from "~/lib/ppp";
+import { getDiscountForCountry } from "~/lib/regional-discount";
 import {
   ANALYTICS_RANGES,
   PLATFORM_FEE_PERCENT,
@@ -46,7 +46,7 @@ import {
   parseAnalyticsRange,
   rangeStart,
 } from "~/lib/analytics";
-import { countryName } from "~/lib/ppp";
+import { countryName } from "~/lib/regional-discount";
 import { pluralize } from "~/lib/pluralize";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -1422,7 +1422,7 @@ function QuizPassRates({ quizzes }: { quizzes: QuizPassRate[] }) {
   );
 }
 
-/** Where a course's buyers are, and what parity pricing costs the seller. */
+/** Where a course's buyers are, and what Regional discounts cost the seller. */
 function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   if (breakdown.rows.length === 0) {
     return (
@@ -1436,12 +1436,12 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   return (
     <>
       <p className="mb-4 text-sm text-muted-foreground">
-        {/* The headline the panel exists for: parity discounting is otherwise
+        {/* The headline the panel exists for: Regional discounts are otherwise
             invisible, though it directly sets what the instructor earns — so
             the figure is stated in net, the money they actually keep. */}
         {formatMoney(breakdown.discountedNetCents)} of your{" "}
         {formatMoney(breakdown.netCents)} net earnings (
-        {breakdown.discountedSharePercent}%) came from countries with a parity
+        {breakdown.discountedSharePercent}%) came from countries with a Regional
         discount. Averages are what a purchase there actually fetched — list prices
         change and are not kept, so no discount is reconstructed per purchase.
       </p>

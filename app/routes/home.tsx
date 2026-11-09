@@ -8,7 +8,7 @@ import { BookOpen, GraduationCap, Users, ArrowRight, User, Moon, Sun } from "luc
 import { CourseImage } from "~/components/course-image";
 import { DevUI } from "~/components/dev-ui";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
-import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
+import { getDiscountLevelInfo, COUNTRIES } from "~/lib/regional-discount";
 import { eq, like, and, or, sql } from "drizzle-orm";
 import { db } from "~/db";
 import { courses, categories, users, modules, lessons } from "~/db/schema";
@@ -58,7 +58,7 @@ function buildCourseQuery(
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -122,7 +122,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
   const currentUser = currentUserId ? getUserById(currentUserId) : null;
   const devCountry = await getDevCountry(request);
-  const countryTierInfo = getCountryTierInfo(devCountry);
+  const discountLevelInfo = getDiscountLevelInfo(devCountry);
 
   return {
     featuredCourses: featured,
@@ -133,13 +133,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       ? { id: currentUser.id, name: currentUser.name, role: currentUser.role }
       : null,
     devCountry,
-    countryTierInfo,
+    discountLevelInfo,
     countries: COUNTRIES,
   };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { featuredCourses, totalCourses, totalCategories, users, currentUser, devCountry, countryTierInfo, countries } = loaderData;
+  const { featuredCourses, totalCourses, totalCategories, users, currentUser, devCountry, discountLevelInfo, countries } = loaderData;
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -305,7 +305,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         users={users}
         currentUser={currentUser}
         devCountry={devCountry}
-        countryTierInfo={countryTierInfo}
+        discountLevelInfo={discountLevelInfo}
         countries={countries}
       />
     </div>

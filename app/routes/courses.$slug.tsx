@@ -50,10 +50,10 @@ import { formatDuration, formatPrice } from "~/lib/utils";
 import { renderMarkdown } from "~/lib/markdown.server";
 import { resolveCountry } from "~/lib/country.server";
 import {
-  calculatePppPrice,
-  getCountryTierInfo,
+  calculateRegionalPrice,
+  getDiscountLevelInfo,
   getDiscountForCountry,
-} from "~/lib/ppp";
+} from "~/lib/regional-discount";
 import { parseFormData } from "~/lib/validation";
 import { MAX_RATING, MIN_RATING } from "~/lib/ratings";
 import { REFUND_WINDOW_DAYS } from "~/lib/refunds";
@@ -76,7 +76,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -486,10 +486,10 @@ function getRefundOffer(
 
   if (redeemedSeat) return null;
 
-  // A purchasing-power price is given back at the price that was paid, not at
-  // the list price of the course.
-  const pppDiscount = getDiscountForCountry(purchase.country);
-  const amount = pppDiscount > 0 ? purchase.amountPaid : course.price;
+  // A purchase at a Regional discount is given back at the price that was paid,
+  // not at the list price of the course.
+  const regionalDiscount = getDiscountForCountry(purchase.country);
+  const amount = regionalDiscount > 0 ? purchase.amountPaid : course.price;
 
   return { amount, lastDayInWindow };
 }
@@ -561,10 +561,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     : null;
 
   const country = await resolveCountry(request);
-  const pppPrice = courseWithDetails.pppEnabled
-    ? calculatePppPrice(courseWithDetails.price, country)
+  const regionalPrice = courseWithDetails.regionalDiscountEnabled
+    ? calculateRegionalPrice(courseWithDetails.price, country)
     : courseWithDetails.price;
-  const tierInfo = getCountryTierInfo(country);
+  const discountLevelInfo = getDiscountLevelInfo(country);
 
   return {
     course: courseWithDetails,
@@ -575,8 +575,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     lessonProgressMap,
     nextLessonId,
     currentUserId,
-    pppPrice,
-    tierInfo,
+    regionalPrice,
+    discountLevelInfo,
     ratingSummary,
     userRating,
     refundOffer,
@@ -676,8 +676,8 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
     lessonProgressMap,
     nextLessonId,
     currentUserId,
-    pppPrice,
-    tierInfo,
+    regionalPrice,
+    discountLevelInfo,
     ratingSummary,
     userRating,
     refundOffer,
@@ -704,8 +704,8 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
     0
   );
 
-  const pppPriceLabel = formatPrice(pppPrice);
-  const isDiscounted = pppPrice < course.price;
+  const regionalPriceLabel = formatPrice(regionalPrice);
+  const isDiscounted = regionalPrice < course.price;
 
   const selfPurchaseLink = currentUserId
     ? `/courses/${course.slug}/purchase`
@@ -722,13 +722,13 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           <div className="text-sm text-muted-foreground line-through">
             {formatPrice(course.price)}
           </div>
-          <div className="text-2xl font-bold">{pppPriceLabel}</div>
+          <div className="text-2xl font-bold">{regionalPriceLabel}</div>
           <div className="mt-1 inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300">
-            {tierInfo.label} — PPP discount
+            {discountLevelInfo.label} — Regional discount
           </div>
         </>
       ) : (
-        <div className="text-2xl font-bold">{pppPriceLabel}</div>
+        <div className="text-2xl font-bold">{regionalPriceLabel}</div>
       )}
     </div>
   );
@@ -748,7 +748,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           {priceDisplay}
           <Link to={selfPurchaseLink}>
             <Button size="lg" className="w-full">
-              Buy now — {pppPriceLabel}
+              Buy now — {regionalPriceLabel}
             </Button>
           </Link>
         </TabsContent>

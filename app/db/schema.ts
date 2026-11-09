@@ -80,7 +80,7 @@ export const courses = sqliteTable("courses", {
   status: text("status").notNull().$type<CourseStatus>(),
   coverImageUrl: text("cover_image_url"),
   price: integer("price").notNull().default(0),
-  pppEnabled: integer("ppp_enabled", { mode: "boolean" })
+  regionalDiscountEnabled: integer("ppp_enabled", { mode: "boolean" })
     .notNull()
     .default(true),
   createdAt: text("created_at")

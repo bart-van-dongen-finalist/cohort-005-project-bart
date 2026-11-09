@@ -4,7 +4,7 @@ import { Sidebar } from "~/components/sidebar";
 import { DevUI } from "~/components/dev-ui";
 import { Toaster } from "sonner";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
-import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
+import { getDiscountLevelInfo, COUNTRIES } from "~/lib/regional-discount";
 import { eq, and, or, sql, desc } from "drizzle-orm";
 import { db } from "~/db";
 import {
@@ -176,7 +176,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
   const currentUser = currentUserId ? getUserById(currentUserId) : null;
   const devCountry = await getDevCountry(request);
-  const countryTierInfo = getCountryTierInfo(devCountry);
+  const discountLevelInfo = getDiscountLevelInfo(devCountry);
 
   const recentCourses = currentUserId
     ? getRecentlyProgressedCourses(currentUserId).map((course) => {
@@ -210,7 +210,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       : null,
     recentCourses,
     devCountry,
-    countryTierInfo,
+    discountLevelInfo,
     countries: COUNTRIES,
     isTeamOwner: currentUserId ? isTeamOwner(currentUserId) : false,
   };
@@ -222,7 +222,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
     currentUser,
     recentCourses,
     devCountry,
-    countryTierInfo,
+    discountLevelInfo,
     countries,
     isTeamOwner: userIsTeamOwner,
   } = loaderData;
@@ -241,7 +241,7 @@ export default function AppLayout({ loaderData }: Route.ComponentProps) {
         users={users}
         currentUser={currentUser}
         devCountry={devCountry}
-        countryTierInfo={countryTierInfo}
+        discountLevelInfo={discountLevelInfo}
         countries={countries}
       />
       <Toaster position="bottom-right" richColors closeButton />

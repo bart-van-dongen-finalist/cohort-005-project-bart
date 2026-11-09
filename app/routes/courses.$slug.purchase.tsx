@@ -37,7 +37,11 @@ import { UserAvatar } from "~/components/user-avatar";
 import { data } from "react-router";
 import { formatDuration, formatPrice } from "~/lib/utils";
 import { resolveCountry } from "~/lib/country.server";
-import { calculatePppPrice, getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
+import {
+  calculateRegionalPrice,
+  getDiscountLevelInfo,
+  COUNTRIES,
+} from "~/lib/regional-discount";
 import { parseFormData, parseParams } from "~/lib/validation";
 
 function getCourseBySlug(slug: string) {
@@ -57,7 +61,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -318,10 +322,10 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
   );
 
   const country = await resolveCountry(request);
-  const pppPrice = courseWithDetails.pppEnabled
-    ? calculatePppPrice(courseWithDetails.price, country)
+  const regionalPrice = courseWithDetails.regionalDiscountEnabled
+    ? calculateRegionalPrice(courseWithDetails.price, country)
     : courseWithDetails.price;
-  const tierInfo = getCountryTierInfo(country);
+  const discountLevelInfo = getDiscountLevelInfo(country);
   const countryName = country
     ? (COUNTRIES.find((c) => c.code === country)?.name ?? country)
     : null;
@@ -331,8 +335,8 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
     lessonCount,
     enrollmentCount,
     totalDuration,
-    pppPrice,
-    tierInfo,
+    regionalPrice,
+    discountLevelInfo,
     country,
     countryName,
     isEnrolled: enrolled,
@@ -360,22 +364,22 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   const country = await resolveCountry(request);
-  const pppPrice = course.pppEnabled
-    ? calculatePppPrice(course.price, country)
+  const regionalPrice = course.regionalDiscountEnabled
+    ? calculateRegionalPrice(course.price, country)
     : course.price;
 
   if (parsed.data.intent === "confirm-purchase") {
     if (isUserEnrolled(currentUserId, course.id)) {
       throw redirect(`/courses/${slug}`);
     }
-    createPurchase(currentUserId, course.id, pppPrice, country);
+    createPurchase(currentUserId, course.id, regionalPrice, country);
     enrollUser(currentUserId, course.id, false, false);
     throw redirect(`/courses/${slug}/welcome`);
   }
 
   // Team purchase — user does NOT get enrolled themselves
   const { quantity } = parsed.data;
-  const totalPrice = pppPrice * quantity;
+  const totalPrice = regionalPrice * quantity;
   createTeamPurchase(currentUserId, course.id, totalPrice, country, quantity);
   throw redirect(`/team`);
 }
@@ -388,8 +392,8 @@ export default function PurchaseConfirmation({
     lessonCount,
     enrollmentCount,
     totalDuration,
-    pppPrice,
-    tierInfo,
+    regionalPrice,
+    discountLevelInfo,
     countryName,
     isEnrolled,
   } = loaderData;
@@ -406,8 +410,8 @@ export default function PurchaseConfirmation({
     }
   }, [fetcher.state, fetcher.data]);
 
-  const isDiscounted = pppPrice < course.price;
-  const teamTotal = pppPrice * quantity;
+  const isDiscounted = regionalPrice < course.price;
+  const teamTotal = regionalPrice * quantity;
 
   return (
     <div className="mx-auto max-w-3xl p-6 lg:p-8">
@@ -477,7 +481,8 @@ export default function PurchaseConfirmation({
             {isDiscounted && countryName && (
               <div className="mb-4 rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
                 <p className="text-sm text-green-800 dark:text-green-300">
-                  PPP discount applied for {countryName} — {tierInfo.label}
+                  Regional discount applied for {countryName} —{" "}
+                  {discountLevelInfo.label}
                 </p>
               </div>
             )}
@@ -512,7 +517,7 @@ export default function PurchaseConfirmation({
                               Your price
                             </span>
                             <div className="text-3xl font-bold">
-                              {formatPrice(pppPrice)}
+                              {formatPrice(regionalPrice)}
                             </div>
                           </>
                         ) : (
@@ -521,7 +526,7 @@ export default function PurchaseConfirmation({
                               Total
                             </span>
                             <div className="text-3xl font-bold">
-                              {formatPrice(pppPrice)}
+                              {formatPrice(regionalPrice)}
                             </div>
                           </>
                         )}
@@ -580,7 +585,7 @@ export default function PurchaseConfirmation({
                     {/* Price breakdown */}
                     <div>
                       <div className="text-sm text-muted-foreground">
-                        {formatPrice(pppPrice)} &times; {quantity}{" "}
+                        {formatPrice(regionalPrice)} &times; {quantity}{" "}
                         {quantity === 1 ? "seat" : "seats"}
                       </div>
                       <div className="text-3xl font-bold">
