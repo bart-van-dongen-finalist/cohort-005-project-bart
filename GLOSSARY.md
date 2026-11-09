@@ -23,7 +23,7 @@ A user who runs the whole platform, across all Courses and users.
 _Avoid_: Administrator, staff (for this role alone)
 
 **Staff**:
-Instructors and Admins together: the people who may answer Comments on behalf of Cadence.
+For a given Course, its own Instructor plus every Admin: the people who may manage that Course and answer its Comments.
 _Avoid_: Moderator, "instructor or admin"
 
 **Team**:
