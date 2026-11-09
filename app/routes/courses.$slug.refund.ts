@@ -147,9 +147,9 @@ export async function action({ params, request }: Route.ActionArgs) {
     });
   }
 
-  // A seat that came out of a team licence, and has been claimed, belongs to
-  // the team — the student cannot hand it back on their own.
-  const claimedSeat = db
+  // A seat from a team purchase whose coupon has been redeemed belongs to the
+  // team — the student cannot hand it back on their own.
+  const redeemedSeat = db
     .select({ id: coupons.id })
     .from(coupons)
     .where(
@@ -157,7 +157,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     )
     .get();
 
-  if (claimedSeat) {
+  if (redeemedSeat) {
     throw data("A team seat whose coupon has been redeemed cannot be refunded.", {
       status: 403,
     });

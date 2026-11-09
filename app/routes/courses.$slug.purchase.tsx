@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import type { Route } from "./+types/courses.$slug.purchase";
 import { getCurrentUserId } from "~/lib/session";
+import { pluralize } from "~/lib/pluralize";
 import { db } from "~/db";
 import {
   courses,
@@ -588,9 +589,9 @@ export default function PurchaseConfirmation({
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      You&apos;ll receive {quantity} unique coupon{" "}
-                      {quantity === 1 ? "link" : "links"} to share with your
-                      team. Each link grants one person access to this course.
+                      You&apos;ll receive {pluralize(quantity, "coupon link")}{" "}
+                      to share with your team. Each coupon link gives one person
+                      access to this course.
                     </p>
 
                     <div className="flex items-center gap-3">

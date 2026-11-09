@@ -47,6 +47,7 @@ import {
   rangeStart,
 } from "~/lib/analytics";
 import { countryName } from "~/lib/ppp";
+import { pluralize } from "~/lib/pluralize";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import {
@@ -1131,15 +1132,16 @@ function TopBuyers({
                     Team
                   </span>{" "}
                   <span className="text-xs text-muted-foreground">
-                    bought {buyer.seatsBought},{" "}
+                    {pluralize(buyer.seatsBought, "seat")} bought,{" "}
                     {buyer.seatsUnredeemed > 0 ? (
-                      // The prompt to chase: seats paid for that nobody is
-                      // using are the most actionable thing on this table.
+                      // The prompt to chase: seats paid for whose coupons
+                      // nobody has redeemed are the most actionable thing on
+                      // this table.
                       <span className="font-medium text-foreground">
-                        {buyer.seatsUnredeemed} unused
+                        {buyer.seatsUnredeemed} unredeemed
                       </span>
                     ) : (
-                      "all claimed"
+                      "all redeemed"
                     )}
                   </span>
                 </div>
@@ -1808,7 +1810,7 @@ export default function InstructorAnalytics({
 
             {/* Both panels sit outside the enrolment gate above: a quiz with
                 nobody enrolled to sit it, and money arriving before anybody
-                claims their seat, are things an instructor should still be
+                redeems their coupon, are things an instructor should still be
                 told about rather than shown one "nobody is enrolled" card in
                 place of. */}
             {quizzes && (

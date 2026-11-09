@@ -234,12 +234,12 @@ export default function Redeem({
               <div className="flex items-center justify-center gap-2 text-destructive">
                 <AlertCircle className="size-5" />
                 <span className="font-medium">
-                  This coupon has already been used
+                  This coupon has already been redeemed
                 </span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Someone has already claimed this seat. Please ask the person who
-                shared this link for a new coupon.
+                Someone has already redeemed this coupon. Ask your team owner
+                for a new coupon link.
               </p>
             </div>
           ) : alreadyEnrolled ? (
@@ -252,7 +252,7 @@ export default function Redeem({
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
                 You already have access to this course. The coupon has not been
-                used, so it can still be shared with someone else.
+                redeemed, so it can still be shared with someone else.
               </p>
               <Link to={`/courses/${course.slug}`}>
                 <Button className="mt-4" size="lg">
