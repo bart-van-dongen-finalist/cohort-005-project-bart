@@ -74,7 +74,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
 
   if (!currentUserId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
 
   const team = getTeamForOwner(currentUserId);
@@ -321,14 +321,14 @@ export default function Team({ loaderData }: Route.ComponentProps) {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "No team found";
       message =
@@ -348,6 +348,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/">
             <Button>Go Home</Button>
           </Link>

@@ -22,7 +22,7 @@ const loginSchema = z.object({
 
 export function meta() {
   return [
-    { title: "Log In — Cadence" },
+    { title: "Log in — Cadence" },
     { name: "description", content: "Log in to your Cadence account" },
   ];
 }
@@ -128,7 +128,7 @@ export default function Login() {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Logging in..." : "Log In"}
+                {isSubmitting ? "Logging in..." : "Log in"}
               </Button>
             </Form>
           </CardContent>

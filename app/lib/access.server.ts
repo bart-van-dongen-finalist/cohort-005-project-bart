@@ -46,7 +46,7 @@ function findPurchase(userId: number, courseId: number) {
 // One place that answers "who is this, and what may they do with this course?".
 //
 // getAccess never throws — the lesson page needs to render a paywall preview for
-// signed-out and unenrolled visitors rather than erroring. The require* wrappers
+// logged-out and unenrolled visitors rather than erroring. The require* wrappers
 // are built on it for the routes that should just reject.
 //
 // Uses positional parameters (project convention).
@@ -70,7 +70,7 @@ export type Access = {
   canViewContent: boolean;
 };
 
-const SIGNED_OUT: Access = {
+const LOGGED_OUT: Access = {
   userId: null,
   user: undefined,
   isAdmin: false,
@@ -88,10 +88,10 @@ export async function getAccess(
   courseId: number
 ): Promise<Access> {
   const userId = await getCurrentUserId(request);
-  if (!userId) return SIGNED_OUT;
+  if (!userId) return LOGGED_OUT;
 
   const user = getUserById(userId);
-  if (!user) return SIGNED_OUT;
+  if (!user) return LOGGED_OUT;
 
   const course = getCourseById(courseId);
   const isAdmin = user.role === UserRole.Admin;
@@ -132,18 +132,18 @@ export async function getAccess(
 }
 
 /**
- * Throws 401 unless someone is signed in. Returns their user id.
+ * Throws 401 unless someone is logged in. Returns their user id.
  */
 export async function requireUserId(request: Request): Promise<number> {
   const userId = await getCurrentUserId(request);
   if (!userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
   return userId;
 }
 
 /**
- * Throws 401 when signed out, 403 when the user can't see the course's content.
+ * Throws 401 when logged out, 403 when the user can't see the course's content.
  * Use in actions — loader guards don't protect actions.
  */
 export async function requireContentAccess(
@@ -153,7 +153,7 @@ export async function requireContentAccess(
   const access = await getAccess(request, courseId);
 
   if (!access.userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
 
   if (!access.canViewContent) {
@@ -173,7 +173,7 @@ export async function requireStaff(
   const access = await getAccess(request, courseId);
 
   if (!access.userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
 
   if (!access.isStaff) {

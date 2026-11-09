@@ -883,7 +883,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   const currentUserId = await getCurrentUserId(request);
   if (!currentUserId) {
-    throw data("You must be logged in", { status: 401 });
+    throw data("You must be logged in.", { status: 401 });
   }
 
   const formData = await request.formData();
@@ -1680,6 +1680,7 @@ function QuizSection({
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading this lesson.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
@@ -1687,11 +1688,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       message =
         "The lesson you're looking for doesn't exist or may have been removed.";
     } else if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else {
       title = `Error ${error.status}`;
       message = typeof error.data === "string" ? error.data : error.statusText;
@@ -1705,6 +1705,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/courses">
             <Button variant="outline">Browse Courses</Button>
           </Link>

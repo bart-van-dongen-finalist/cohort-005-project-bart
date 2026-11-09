@@ -410,14 +410,14 @@ export function HydrateFallback() {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading your comments.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Not allowed";
       message =
@@ -436,9 +436,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <AlertTriangle className="mx-auto mb-4 size-12 text-muted-foreground" />
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
-        <Link to="/instructor">
-          <Button>My Courses</Button>
-        </Link>
+        <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
+          <Link to="/instructor">
+            <Button>My Courses</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

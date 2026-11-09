@@ -308,10 +308,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message =
     "An unexpected error occurred while loading this module preview.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Not authenticated";
+      title = "Log in required";
+      showLogIn = true;
       message =
         typeof error.data === "string"
           ? error.data
@@ -347,6 +349,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
             <Button variant="outline">My Courses</Button>
           </Link>

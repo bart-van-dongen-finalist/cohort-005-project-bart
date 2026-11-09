@@ -245,7 +245,7 @@ export function Sidebar({
             <Form method="post" action="/api/logout">
               <button
                 type="submit"
-                title="Sign out"
+                title="Log out"
                 className="rounded-md p-1 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 <LogOut className="size-4" />

@@ -11,10 +11,10 @@ Before you name a domain concept or write user-facing text, read `GLOSSARY.md` f
 
 ## When something breaks
 
-| Symptom                                         | Cause                                                                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 401 "Select a user from the DevUI panel"        | No user in the session — switch users and country in the floating panel (`app/components/dev-ui.tsx`). |
-| `tsc` reports every `./+types/*` import missing | Typegen has not run. Use `npm run typecheck`, which runs `react-router typegen` first.                 |
+| Symptom                                         | Cause                                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 401 "Log in required" / "Log in to continue."   | No user in the session — switch users and country in the floating DevUI panel (`app/components/dev-ui.tsx`). |
+| `tsc` reports every `./+types/*` import missing | Typegen has not run. Use `npm run typecheck`, which runs `react-router typegen` first.                       |
 
 ## Agent skills
 
