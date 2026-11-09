@@ -28,6 +28,7 @@ import {
 } from "~/components/ui/select";
 import { AlertTriangle, BookOpen, Users } from "lucide-react";
 import { data, isRouteErrorResponse, Link } from "react-router";
+import { pluralize } from "~/lib/pluralize";
 
 const adminCourseActionSchema = z.discriminatedUnion("intent", [
   z.object({
@@ -84,7 +85,7 @@ function updateCourseStatus(id: number, status: CourseStatus) {
 
 export function meta() {
   return [
-    { title: "Manage Courses — Cadence" },
+    { title: "Manage courses — Cadence" },
     { name: "description", content: "Manage all platform courses" },
   ];
 }
@@ -93,7 +94,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
 
   if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to manage courses.", {
+    throw data("Log in to continue.", {
       status: 401,
     });
   }
@@ -310,11 +311,11 @@ export default function AdminCourses({ loaderData }: Route.ComponentProps) {
           Home
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">Manage Courses</span>
+        <span className="text-foreground">Manage courses</span>
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Manage Courses</h1>
+        <h1 className="text-3xl font-bold">Manage courses</h1>
         <p className="mt-1 text-muted-foreground">
           View all courses and manage their status
         </p>
@@ -323,7 +324,7 @@ export default function AdminCourses({ loaderData }: Route.ComponentProps) {
       <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
         <BookOpen className="size-4" />
         <span>
-          {courses.length} {courses.length === 1 ? "course" : "courses"} total
+          {pluralize(courses.length, "course")} total
         </span>
       </div>
 
@@ -375,11 +376,13 @@ export default function AdminCourses({ loaderData }: Route.ComponentProps) {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading course management.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
-      message = typeof error.data === "string" ? error.data : "Please select a user from the DevUI panel.";
+      title = "Log in required";
+      showLogIn = true;
+      message = typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Access denied";
       message = typeof error.data === "string" ? error.data : "Only admins can access this page.";
@@ -396,8 +399,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

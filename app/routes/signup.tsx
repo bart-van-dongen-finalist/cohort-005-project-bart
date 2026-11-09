@@ -23,7 +23,7 @@ const signupSchema = z.object({
 
 export function meta() {
   return [
-    { title: "Sign Up — Cadence" },
+    { title: "Sign up — Cadence" },
     { name: "description", content: "Create your Cadence account" },
   ];
 }
@@ -157,7 +157,7 @@ export default function SignUp() {
                 className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Creating account..." : "Sign Up"}
+                {isSubmitting ? "Creating account..." : "Sign up"}
               </Button>
             </Form>
           </CardContent>

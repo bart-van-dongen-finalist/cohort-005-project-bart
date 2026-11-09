@@ -39,7 +39,7 @@ interface RecentCourse {
 interface SidebarProps {
   currentUser: CurrentUser | null;
   recentCourses?: RecentCourse[];
-  isTeamAdmin?: boolean;
+  isTeamOwner?: boolean;
 }
 
 interface NavItem {
@@ -51,7 +51,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: "Browse Courses",
+    label: "Browse courses",
     to: "/courses",
     icon: <BookOpen className="size-4" />,
     roles: "all",
@@ -63,7 +63,7 @@ const navItems: NavItem[] = [
     roles: [UserRole.Student],
   },
   {
-    label: "My Courses",
+    label: "My courses",
     to: "/instructor",
     icon: <GraduationCap className="size-4" />,
     roles: [UserRole.Instructor],
@@ -75,19 +75,19 @@ const navItems: NavItem[] = [
     roles: [UserRole.Instructor, UserRole.Admin],
   },
   {
-    label: "Questions",
-    to: "/instructor/questions",
+    label: "Comments",
+    to: "/instructor/comments",
     icon: <MessageSquare className="size-4" />,
     roles: [UserRole.Instructor, UserRole.Admin],
   },
   {
-    label: "Manage Users",
+    label: "Manage users",
     to: "/admin/users",
     icon: <Users className="size-4" />,
     roles: [UserRole.Admin],
   },
   {
-    label: "Manage Courses",
+    label: "Manage courses",
     to: "/admin/courses",
     icon: <Shield className="size-4" />,
     roles: [UserRole.Admin],
@@ -109,7 +109,7 @@ function isVisible(item: NavItem, role: UserRole | null): boolean {
 export function Sidebar({
   currentUser,
   recentCourses = [],
-  isTeamAdmin = false,
+  isTeamOwner = false,
 }: SidebarProps) {
   const currentUserRole = currentUser?.role ?? null;
   const [isDark, setIsDark] = useState(false);
@@ -155,7 +155,7 @@ export function Sidebar({
               {item.label}
             </NavLink>
           ))}
-        {isTeamAdmin && (
+        {isTeamOwner && (
           <NavLink
             to="/team"
             className={({ isActive }) =>
@@ -176,7 +176,7 @@ export function Sidebar({
       {recentCourses.length > 0 && (
         <div className="border-t border-sidebar-border p-3">
           <div className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/50">
-            Recent Courses
+            Recent courses
           </div>
           <div className="space-y-1">
             {recentCourses.map((course) => (
@@ -218,7 +218,7 @@ export function Sidebar({
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         >
           {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          {isDark ? "Light Mode" : "Dark Mode"}
+          {isDark ? "Light mode" : "Dark mode"}
         </button>
 
         {currentUser && (
@@ -245,7 +245,7 @@ export function Sidebar({
             <Form method="post" action="/api/logout">
               <button
                 type="submit"
-                title="Sign out"
+                title="Log out"
                 className="rounded-md p-1 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               >
                 <LogOut className="size-4" />

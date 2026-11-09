@@ -1,8 +1,7 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/instructor.$courseId.modules.$moduleId";
-import { getCurrentUserId } from "~/lib/session";
+import { requireStaff } from "~/lib/access.server";
 import {
-  UserRole,
   users,
   courses,
   categories,
@@ -28,15 +27,12 @@ import {
 import { data, isRouteErrorResponse } from "react-router";
 import { formatDuration } from "~/lib/utils";
 import { z } from "zod";
+import { pluralize } from "~/lib/pluralize";
 
 const paramsSchema = z.object({
   courseId: z.coerce.number().int(),
   moduleId: z.coerce.number().int(),
 });
-
-function getUserById(id: number) {
-  return db.select().from(users).where(eq(users.id, id)).get();
-}
 
 function getCourseById(id: number) {
   return db.select().from(courses).where(eq(courses.id, id)).get();
@@ -55,7 +51,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -120,28 +116,9 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to manage courses.", {
-      status: 401,
-    });
-  }
-
-  const user = getUserById(currentUserId);
-
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can access this page.", {
-      status: 403,
-    });
-  }
-
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) {
-    throw data("Invalid parameters", { status: 400 });
+    throw data("Invalid parameters.", { status: 400 });
   }
 
   const { courseId, moduleId } = parsed.data;
@@ -151,9 +128,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only view your own courses.", { status: 403 });
-  }
+  await requireStaff(request, courseId);
 
   const courseWithDetails = getCourseWithDetails(courseId);
   if (!courseWithDetails) {
@@ -241,7 +216,7 @@ export default function InstructorModulePreview({
         <Link to={`/courses/${course.slug}/${mod.id}`}>
           <Button variant="outline" size="sm">
             <ExternalLink className="mr-1 size-3.5" />
-            Student View
+            Student view
           </Button>
         </Link>
       </div>
@@ -251,7 +226,7 @@ export default function InstructorModulePreview({
       <div className="mb-6 flex items-center gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <BookOpen className="size-4" />
-          {totalLessons} {totalLessons === 1 ? "lesson" : "lessons"}
+          {pluralize(totalLessons, "lesson")}
         </span>
         {totalDuration > 0 && (
           <span className="flex items-center gap-1">
@@ -334,10 +309,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message =
     "An unexpected error occurred while loading this module preview.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Not authenticated";
+      title = "Log in required";
+      showLogIn = true;
       message =
         typeof error.data === "string"
           ? error.data
@@ -373,11 +350,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

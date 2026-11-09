@@ -31,7 +31,7 @@ export async function resolveCountry(request: Request): Promise<string | null> {
       }
     }
   } catch {
-    // Silently fail — default to null (treated as Tier 1)
+    // Silently fail — default to null (treated as full price)
   }
 
   return null;

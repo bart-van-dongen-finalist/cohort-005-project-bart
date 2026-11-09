@@ -193,13 +193,13 @@ function CommentActions({
 function CommentItem({
   comment,
   currentUserId,
-  canModerate,
+  isStaff,
   canPost,
   isReply,
 }: {
   comment: RenderedComment;
   currentUserId: number | null;
-  canModerate: boolean;
+  isStaff: boolean;
   canPost: boolean;
   isReply: boolean;
 }) {
@@ -217,7 +217,7 @@ function CommentItem({
         <Replies
           comment={comment}
           currentUserId={currentUserId}
-          canModerate={canModerate}
+          isStaff={isStaff}
           canPost={canPost}
         />
       </div>
@@ -277,7 +277,7 @@ function CommentItem({
             <CommentActions
               comment={comment}
               canEdit={isAuthor}
-              canDelete={isAuthor || canModerate}
+              canDelete={isAuthor || isStaff}
               canReply={canPost && !isReply}
               onEdit={() => setEditing(true)}
               onReply={() => setReplying(true)}
@@ -302,7 +302,7 @@ function CommentItem({
       <Replies
         comment={comment}
         currentUserId={currentUserId}
-        canModerate={canModerate}
+        isStaff={isStaff}
         canPost={canPost}
       />
     </div>
@@ -312,12 +312,12 @@ function CommentItem({
 function Replies({
   comment,
   currentUserId,
-  canModerate,
+  isStaff,
   canPost,
 }: {
   comment: RenderedComment;
   currentUserId: number | null;
-  canModerate: boolean;
+  isStaff: boolean;
   canPost: boolean;
 }) {
   if (comment.replies.length === 0) return null;
@@ -329,7 +329,7 @@ function Replies({
           key={reply.id}
           comment={reply}
           currentUserId={currentUserId}
-          canModerate={canModerate}
+          isStaff={isStaff}
           canPost={canPost}
           isReply
         />
@@ -341,14 +341,14 @@ function Replies({
 export function CommentThread({
   comments,
   currentUserId,
-  canModerate,
+  isStaff,
   canPost,
   instructorName,
 }: {
   comments: RenderedComment[];
   currentUserId: number | null;
-  /** Owning instructor or admin — may delete anyone's comment. */
-  canModerate: boolean;
+  /** Staff (the owning Instructor or an Admin) may delete anyone's comment. */
+  isStaff: boolean;
   canPost: boolean;
   instructorName: string;
 }) {
@@ -357,15 +357,15 @@ export function CommentThread({
       <CardContent className="p-6">
         <div className="mb-4 flex items-center gap-2">
           <MessageSquare className="size-5 text-primary" />
-          <h2 className="text-xl font-semibold">Questions &amp; Discussion</h2>
+          <h2 className="text-xl font-semibold">Comments</h2>
         </div>
 
         {comments.length === 0 ? (
           <div className="rounded-lg border border-dashed p-6 text-center">
             <p className="font-medium">Stuck on this lesson?</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Ask here — {instructorName} answers questions in this course.
-              There&apos;s no such thing as a question that&apos;s too basic.
+              Ask here — {instructorName} replies to comments in this course.
+              Nothing is too basic to ask.
             </p>
           </div>
         ) : (
@@ -375,7 +375,7 @@ export function CommentThread({
                 key={comment.id}
                 comment={comment}
                 currentUserId={currentUserId}
-                canModerate={canModerate}
+                isStaff={isStaff}
                 canPost={canPost}
                 isReply={false}
               />
@@ -387,7 +387,7 @@ export function CommentThread({
           <div className="mt-6 border-t pt-6">
             <CommentForm
               intent="create-comment"
-              placeholder="Ask a question or share what you found..."
+              placeholder="Write a comment: ask for help or share what you found..."
               submitLabel="Post comment"
             />
           </div>

@@ -15,13 +15,13 @@ const videoTrackingSchema = z.object({
 export async function action({ request }: Route.ActionArgs) {
   const currentUserId = await getCurrentUserId(request);
   if (!currentUserId) {
-    throw data("Unauthorized", { status: 401 });
+    throw data("Unauthorized.", { status: 401 });
   }
 
   const parsed = await parseJsonBody(request, videoTrackingSchema);
 
   if (!parsed.success) {
-    throw data("Invalid parameters", { status: 400 });
+    throw data("Invalid parameters.", { status: 400 });
   }
 
   const { lessonId, eventType, positionSeconds } = parsed.data;

@@ -7,7 +7,7 @@ import { type Highlighter, createHighlighter } from "shiki";
 // renderMarkdown handles lesson content and sales copy, which are written by
 // instructors — trusted input, raw HTML allowed through. Comments are written by
 // students, so the same treatment would be stored XSS against every reader,
-// including the instructor and any admin who opens the questions queue.
+// including the Staff who open the unanswered-comments queue.
 //
 // This renderer never emits author-supplied HTML:
 //   - raw HTML blocks/tags are escaped and shown as literal text

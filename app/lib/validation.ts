@@ -48,7 +48,7 @@ export function parseParams<T extends z.ZodType>(
     return result.data;
   }
 
-  throw data("Invalid parameters", { status: 400 });
+  throw data("Invalid parameters.", { status: 400 });
 }
 
 /**

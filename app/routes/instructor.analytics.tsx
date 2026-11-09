@@ -1,7 +1,7 @@
 import { Link, isRouteErrorResponse, useSearchParams } from "react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type { Route } from "./+types/instructor.analytics";
-import { requireInstructorOrAdmin } from "~/lib/access.server";
+import { requireStaffRole } from "~/lib/access.server";
 import {
   and,
   count,
@@ -37,7 +37,7 @@ import {
   users,
 } from "~/db/schema";
 import { splitRevenue, type AnalyticsRange } from "~/lib/analytics";
-import { getDiscountForCountry } from "~/lib/ppp";
+import { getDiscountForCountry } from "~/lib/regional-discount";
 import {
   ANALYTICS_RANGES,
   PLATFORM_FEE_PERCENT,
@@ -46,7 +46,8 @@ import {
   parseAnalyticsRange,
   rangeStart,
 } from "~/lib/analytics";
-import { countryName } from "~/lib/ppp";
+import { countryName } from "~/lib/regional-discount";
+import { pluralize } from "~/lib/pluralize";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import {
@@ -127,7 +128,7 @@ type TopBuyer = {
   userId: number;
   name: string;
   email: string;
-  spendCents: number;
+  paidCents: number;
   purchaseCount: number;
   seatsBought: number;
   seatsUnredeemed: number;
@@ -143,7 +144,7 @@ type CourseProgressSummary = {
   enrolledCount: number;
   totalLessons: number;
   averageProgressPercent: number | null;
-  finishedCount: number;
+  completedCount: number;
 };
 
 type FunnelLesson = {
@@ -318,7 +319,7 @@ function getTopBuyers(
       userId: users.id,
       name: users.name,
       email: users.email,
-      spend: sum(purchases.amountPaid),
+      paid: sum(purchases.amountPaid),
       purchaseCount: count(purchases.id),
     })
     .from(purchases)
@@ -335,8 +336,8 @@ function getTopBuyers(
   const buyerIds = buyers.map((buyer) => buyer.userId);
 
   // Seats are counted in their own query: joining coupons to purchases above
-  // would repeat each purchase once per seat and multiply the spend the
-  // leaderboard ranks on.
+  // would repeat each purchase once per seat and multiply the amount paid
+  // that the leaderboard ranks on.
   const seats = db
     .select({
       userId: purchases.userId,
@@ -373,7 +374,7 @@ function getTopBuyers(
     userId: buyer.userId,
     name: buyer.name,
     email: buyer.email,
-    spendCents: Number(buyer.spend ?? 0),
+    paidCents: Number(buyer.paid ?? 0),
     purchaseCount: buyer.purchaseCount,
     seatsBought: seatsByUser.get(buyer.userId)?.bought ?? 0,
     seatsUnredeemed: Number(seatsByUser.get(buyer.userId)?.unredeemed ?? 0),
@@ -455,7 +456,7 @@ function getRevenueOverTime(
   );
 
   const now = new Date().toISOString();
-  // A fixed range always spans its whole window, even before the first sale;
+  // A fixed range always spans its whole window, even before the first purchase;
   // all time can only start where the data does.
   const start = rangeStart(range) ?? rows[0].bucket;
 
@@ -517,7 +518,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
       enrolledCount: perStudent.length,
       totalLessons,
       averageProgressPercent: null,
-      finishedCount: 0,
+      completedCount: 0,
     };
   }
 
@@ -530,7 +531,7 @@ function getCourseProgressSummary(courseId: number): CourseProgressSummary {
     enrolledCount: perStudent.length,
     totalLessons,
     averageProgressPercent: Math.round(totalPercent / perStudent.length),
-    finishedCount: perStudent.filter(
+    completedCount: perStudent.filter(
       (student) => student.completed >= totalLessons
     ).length,
   };
@@ -795,7 +796,7 @@ function getCourseRevenueByCountry(
 }
 
 export async function loader({ request, url }: Route.LoaderArgs) {
-  const { userId, isAdmin } = await requireInstructorOrAdmin(request);
+  const { userId, isAdmin } = await requireStaffRole(request);
 
   const range = parseAnalyticsRange(url.searchParams.get("range"));
   const tab: AnalyticsTab =
@@ -825,15 +826,14 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     ? requestedCourseId
     : null;
 
-  // Unanswered questions. A question qualifies when it is top-level, not
-  // deleted, not written by staff, and has no reply from the course's
-  // instructor or an admin.
-  const questionsSince = rangeStart(range);
-  const questionAuthor = alias(users, "author");
+  // Unanswered comments. A comment qualifies when it is top-level, not
+  // deleted, not written by Staff, and has no reply from Staff.
+  const commentsSince = rangeStart(range);
+  const commentAuthor = alias(users, "author");
   const reply = alias(comments, "reply");
   const replyAuthor = alias(users, "reply_author");
 
-  // Correlated: matches a live reply, by staff, to the outer question.
+  // Correlated: matches a live reply, by Staff, to the outer comment.
   const staffReply = db
     .select({ one: sql`1` })
     .from(reply)
@@ -849,40 +849,40 @@ export async function loader({ request, url }: Route.LoaderArgs) {
       )
     );
 
-  const questionConditions = [
+  const unansweredConditions = [
     isNull(comments.parentId),
     isNull(comments.deletedAt),
-    // Staff asking their own question shouldn't queue up as work for themselves.
-    ne(questionAuthor.role, UserRole.Admin),
+    // Staff posting their own comment shouldn't queue up as work for themselves.
+    ne(commentAuthor.role, UserRole.Admin),
     ne(comments.userId, courses.instructorId),
     notExists(staffReply),
   ];
 
   if (instructorId !== null) {
-    questionConditions.push(eq(courses.instructorId, instructorId));
+    unansweredConditions.push(eq(courses.instructorId, instructorId));
   }
 
-  const questionRow = db
+  const unansweredRow = db
     .select({
       inRange:
-        questionsSince === null
+        commentsSince === null
           ? count(comments.id)
-          : sql<number>`sum(case when ${comments.createdAt} >= ${questionsSince} then 1 else 0 end)`,
+          : sql<number>`sum(case when ${comments.createdAt} >= ${commentsSince} then 1 else 0 end)`,
       total: count(comments.id),
     })
     .from(comments)
-    .innerJoin(questionAuthor, eq(comments.userId, questionAuthor.id))
+    .innerJoin(commentAuthor, eq(comments.userId, commentAuthor.id))
     .innerJoin(lessons, eq(comments.lessonId, lessons.id))
     .innerJoin(modules, eq(lessons.moduleId, modules.id))
     .innerJoin(courses, eq(modules.courseId, courses.id))
-    .where(and(...questionConditions))
+    .where(and(...unansweredConditions))
     .get();
 
   // sum() is null over an empty set; count() is already 0.
-  const questionsInRange = Number(questionRow?.inRange ?? 0);
-  const questions = {
-    inRange: questionsInRange,
-    older: (questionRow?.total ?? 0) - questionsInRange,
+  const unansweredInRange = Number(unansweredRow?.inRange ?? 0);
+  const unansweredComments = {
+    inRange: unansweredInRange,
+    older: (unansweredRow?.total ?? 0) - unansweredInRange,
   };
 
   // Gross revenue, the platform's fee and the instructor's net for the range.
@@ -902,7 +902,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     purchaseCount: summaryRow?.purchaseCount ?? 0,
   };
 
-  // Revenue broken down by course, biggest earner first. Courses with no sales
+  // Revenue broken down by course, biggest earner first. Courses with no purchases
   // in the range are absent rather than listed at zero.
   const courseRevenueRows = db
     .select({
@@ -963,7 +963,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
         .all()
     : [];
 
-  // Drives the "publish your first course" empty state. The platform-wide view
+  // Drives the "create your first course" empty state. The platform-wide view
   // always has courses in it, so the prompt only makes sense for one named
   // instructor.
   const publishedRow =
@@ -981,9 +981,9 @@ export async function loader({ request, url }: Route.LoaderArgs) {
           .get();
 
   return {
-    // Split rather than filtered: the range applies, but questions older than
+    // Split rather than filtered: the range applies, but comments older than
     // it are still reported, because months of silence is the urgent case.
-    questions,
+    unansweredComments,
     audience,
     buyers: getTopBuyers(instructorId, range),
     ratings: getRatingSummary(instructorId, range),
@@ -1015,7 +1015,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
         ? null
         : getCourseRevenueByCountry(selectedCourseId, range),
     instructors,
-    unpublished: instructorId !== null && publishedRow === undefined,
+    hasPublishedCourse: instructorId === null || publishedRow !== undefined,
   };
 }
 
@@ -1101,8 +1101,7 @@ function TopBuyers({
   if (buyers.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        Nobody has bought anything in this period, so there is nobody to reach
-        out to yet.
+        No buyers in this period.
       </p>
     );
   }
@@ -1114,7 +1113,7 @@ function TopBuyers({
           <th className="pb-2 font-medium">Buyer</th>
           <th className="pb-2 font-medium">Seats</th>
           <th className="pb-2 text-right font-medium">Purchases</th>
-          <th className="pb-2 text-right font-medium">Total spend</th>
+          <th className="pb-2 text-right font-medium">Total paid</th>
         </tr>
       </thead>
       <tbody>
@@ -1131,20 +1130,21 @@ function TopBuyers({
                     Team
                   </span>{" "}
                   <span className="text-xs text-muted-foreground">
-                    bought {buyer.seatsBought},{" "}
+                    {pluralize(buyer.seatsBought, "seat")} bought,{" "}
                     {buyer.seatsUnredeemed > 0 ? (
-                      // The prompt to chase: seats paid for that nobody is
-                      // using are the most actionable thing on this table.
+                      // The prompt to chase: seats paid for whose coupons
+                      // nobody has redeemed are the most actionable thing on
+                      // this table.
                       <span className="font-medium text-foreground">
-                        {buyer.seatsUnredeemed} unused
+                        {buyer.seatsUnredeemed} unredeemed
                       </span>
                     ) : (
-                      "all claimed"
+                      "all redeemed"
                     )}
                   </span>
                 </div>
               )}
-              {/* Said of team buyers too, not just solo ones: the manager who
+              {/* Said of team buyers too, not just solo ones: the Team owner who
                   bought a dozen seats and never opened the course is the very
                   person this table exists to surface. */}
               <div className="text-xs text-muted-foreground">
@@ -1155,7 +1155,7 @@ function TopBuyers({
               {buyer.purchaseCount}
             </td>
             <td className="py-3 text-right font-medium tabular-nums">
-              {formatMoney(buyer.spendCents)}
+              {formatMoney(buyer.paidCents)}
             </td>
           </tr>
         ))}
@@ -1242,10 +1242,8 @@ function CourseProgress({ progress }: { progress: CourseProgressSummary }) {
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Lessons completed per enrolled student, across{" "}
-            {progress.enrolledCount}{" "}
-            {progress.enrolledCount === 1 ? "student" : "students"} and{" "}
-            {progress.totalLessons}{" "}
-            {progress.totalLessons === 1 ? "lesson" : "lessons"}.
+            {pluralize(progress.enrolledCount, "student")} and{" "}
+            {pluralize(progress.totalLessons, "lesson")}.
           </p>
         </CardContent>
       </Card>
@@ -1253,10 +1251,10 @@ function CourseProgress({ progress }: { progress: CourseProgressSummary }) {
       <Card>
         <CardContent className="p-6">
           <div className="text-sm font-medium text-muted-foreground">
-            Students finished <span className="font-normal">· all time</span>
+            Students completed <span className="font-normal">· all time</span>
           </div>
           <div className="mt-2 text-3xl font-bold">
-            {progress.finishedCount}
+            {progress.completedCount}
           </div>
           {/* A count, and deliberately not a third percentage: several
               defensible completion rates exist, they disagree, and naming one
@@ -1318,7 +1316,7 @@ function DropOffFunnel({ funnel }: { funnel: CourseFunnel }) {
   if (funnel.modules.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        This course has no lessons yet, so there is nothing to drop off from.
+        This course has no lessons yet.
       </p>
     );
   }
@@ -1421,13 +1419,13 @@ function QuizPassRates({ quizzes }: { quizzes: QuizPassRate[] }) {
   );
 }
 
-/** Where a course's buyers are, and what parity pricing costs the seller. */
+/** Where a course's buyers are, and what Regional discounts cost the seller. */
 function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   if (breakdown.rows.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        This course has no sales in this period, so there is nowhere to break
-        down yet.
+        This course has no purchases in this period, so there is no breakdown by
+        country.
       </p>
     );
   }
@@ -1435,20 +1433,20 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   return (
     <>
       <p className="mb-4 text-sm text-muted-foreground">
-        {/* The headline the panel exists for: parity discounting is otherwise
+        {/* The headline the panel exists for: Regional discounts are otherwise
             invisible, though it directly sets what the instructor earns — so
             the figure is stated in net, the money they actually keep. */}
         {formatMoney(breakdown.discountedNetCents)} of your{" "}
         {formatMoney(breakdown.netCents)} net earnings (
-        {breakdown.discountedSharePercent}%) came from countries with a parity
-        discount. Averages are what a sale there actually fetched — list prices
-        change and are not kept, so no discount is reconstructed per purchase.
+        {breakdown.discountedSharePercent}%) came from countries with a regional
+        discount. Average paid is what buyers in each country paid per purchase,
+        after any regional discount.
       </p>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th className="pb-2 font-medium">Country</th>
-            <th className="pb-2 text-right font-medium">Sales</th>
+            <th className="pb-2 text-right font-medium">Purchases</th>
             <th className="pb-2 text-right font-medium">Average paid</th>
             <th className="pb-2 text-right font-medium">Gross</th>
             <th className="pb-2 text-right font-medium">Net</th>
@@ -1517,10 +1515,10 @@ export default function InstructorAnalytics({
     quizzes,
     countries,
     instructors,
-    unpublished,
+    hasPublishedCourse,
     audience,
     buyers,
-    questions,
+    unansweredComments,
     ratings,
   } = loaderData;
 
@@ -1540,7 +1538,7 @@ export default function InstructorAnalytics({
   const selectedCourse =
     courseOptions.find((course) => course.courseId === selectedCourseId) ??
     null;
-  // The revenue table narrows to the selected course. One with no sales in the
+  // The revenue table narrows to the selected course. One with no purchases in the
   // range has no row at all, and the panel says so rather than sitting empty.
   const revenueRows = selectedCourse
     ? courses.filter((course) => course.courseId === selectedCourseId)
@@ -1609,17 +1607,17 @@ export default function InstructorAnalytics({
         </div>
       </div>
 
-      {unpublished ? (
+      {!hasPublishedCourse ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Rocket className="mx-auto mb-4 size-12 text-muted-foreground" />
             <p className="font-medium">No published courses yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-              Analytics start the moment you make your first sale. Publish your
-              first course to get going.
+              Analytics start with the first purchase of one of your courses.
+              Create your first course to get going.
             </p>
             <Link to="/instructor/new" className="mt-6 inline-block">
-              <Button>Publish your first course</Button>
+              <Button>Create your first course</Button>
             </Link>
           </CardContent>
         </Card>
@@ -1635,14 +1633,12 @@ export default function InstructorAnalytics({
               <MoneyCard
                 label="Gross revenue"
                 amountCents={summary.grossCents}
-                hint={`What students paid, across ${summary.purchaseCount} ${
-                  summary.purchaseCount === 1 ? "purchase" : "purchases"
-                }.`}
+                hint={`What students paid, across ${pluralize(summary.purchaseCount, "purchase")}.`}
               />
               <MoneyCard
                 label={`Platform fee (${PLATFORM_FEE_PERCENT}%)`}
                 amountCents={summary.feeCents}
-                hint="Cadence's cut. Already deducted from your earnings."
+                hint="Cadence's platform fee, already deducted from your earnings."
               />
               <MoneyCard
                 label="Your net earnings"
@@ -1657,12 +1653,12 @@ export default function InstructorAnalytics({
                 label="Buyers"
                 value={audience.buyerCount}
                 hint="People who paid. A team buying several seats counts once."
-                emptyHint="Nobody has bought in this period."
+                emptyHint="No purchases in this period."
               />
               <StatCard
                 label="Enrolled students"
                 value={audience.studentCount}
-                hint={`Learners with access, seats included.${
+                hint={`Students with access, seats included.${
                   audience.revenuePerStudentCents === null
                     ? ""
                     : ` ${formatMoney(
@@ -1672,27 +1668,30 @@ export default function InstructorAnalytics({
                 emptyHint="Nobody has enrolled in this period."
               />
               <StatCard
-                label="Unanswered questions"
-                value={questions.inRange}
+                label="Unanswered comments"
+                value={unansweredComments.inRange}
                 hint={
-                  questions.older > 0
-                    ? `Plus ${questions.older} from before this period.`
-                    : "Students waiting on a reply."
+                  unansweredComments.older > 0
+                    ? `Plus ${unansweredComments.older} from before this period.`
+                    : "Students who still need a reply."
                 }
                 // Quiet this period is only good news if the backlog is empty
                 // too, so the older count keeps its place in the empty copy.
                 emptyHint={
-                  questions.older > 0
-                    ? `None this period, but ${questions.older} still waiting from before.`
-                    : "Nothing is waiting on you."
+                  unansweredComments.older > 0
+                    ? `None this period, but ${pluralize(
+                        unansweredComments.older,
+                        "older comment"
+                      )} ${unansweredComments.older === 1 ? "is" : "are"} still unanswered.`
+                    : "You have no unanswered comments."
                 }
                 action={
-                  questions.inRange + questions.older > 0 ? (
+                  unansweredComments.inRange + unansweredComments.older > 0 ? (
                     <Link
-                      to="/instructor/questions"
+                      to="/instructor/comments"
                       className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
                     >
-                      Answer them
+                      Answer comments
                     </Link>
                   ) : null
                 }
@@ -1700,9 +1699,7 @@ export default function InstructorAnalytics({
               <StatCard
                 label="Course rating"
                 value={ratings.average === null ? "—" : `${ratings.average} ★`}
-                hint={`Across ${ratings.count} ${
-                  ratings.count === 1 ? "rating" : "ratings"
-                }.`}
+                hint={`Across ${pluralize(ratings.count, "rating")}.`}
                 emptyHint="Nobody has rated your courses in this period."
               />
             </div>
@@ -1712,13 +1709,13 @@ export default function InstructorAnalytics({
                 <h2 className="mb-4 text-lg font-semibold">
                   Revenue over time
                 </h2>
-                {/* Keyed on the sales themselves, not on the points: a fixed
+                {/* Keyed on the purchases themselves, not on the points: a fixed
                     range always spans its whole window, so an instructor with
-                    no sales would otherwise get a flat line along zero rather
+                    no purchases would otherwise get a flat line along zero rather
                     than being told there is nothing there. */}
                 {summary.purchaseCount === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No sales in this period yet.
+                    No purchases in this period yet.
                   </p>
                 ) : (
                   <RevenueChart series={series} />
@@ -1730,8 +1727,7 @@ export default function InstructorAnalytics({
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold">Top buyers</h2>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Your ten biggest spenders in this period — the people worth
-                  reaching out to.
+                  The ten buyers who paid the most in this period.
                 </p>
                 <TopBuyers buyers={buyers} />
               </CardContent>
@@ -1770,7 +1766,7 @@ export default function InstructorAnalytics({
                     <p className="font-medium">Nobody is enrolled yet</p>
                     <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                       Progress and drop-off appear as soon as the first student
-                      joins {selectedCourse?.title}.
+                      enrolls in {selectedCourse?.title}.
                     </p>
                   </CardContent>
                 </Card>
@@ -1782,12 +1778,12 @@ export default function InstructorAnalytics({
                     <CardContent className="p-6">
                       <h2 className="text-lg font-semibold">Drop-off</h2>
                       <p className="mb-4 text-sm text-muted-foreground">
-                        How many of the {funnel.enrolledCount} enrolled{" "}
-                        {funnel.enrolledCount === 1 ? "student" : "students"}{" "}
-                        got at least as far as each lesson, all time. The bars
-                        only descend, so the biggest gap is where students quit
-                        — the figure beside a lesson counts the ones who never
-                        reached it, having stopped on the lesson above.
+                        How many of the{" "}
+                        {pluralize(funnel.enrolledCount, "enrolled student")}{" "}
+                        reached each lesson, all time. The biggest gap shows
+                        where students stop. The number beside a lesson counts
+                        the students who reached the lesson above but not this
+                        one.
                       </p>
                       <DropOffFunnel funnel={funnel} />
                     </CardContent>
@@ -1800,8 +1796,8 @@ export default function InstructorAnalytics({
                   <p className="font-medium">Pick a course</p>
                   <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                     {courseOptions.length === 0
-                      ? "There are no courses here to look into yet."
-                      : "Choose one of your courses above to see how far students get and where they give up."}
+                      ? "There are no courses here yet."
+                      : "Choose one of your courses above to see how far students get and where they stop."}
                   </p>
                 </CardContent>
               </Card>
@@ -1809,7 +1805,7 @@ export default function InstructorAnalytics({
 
             {/* Both panels sit outside the enrolment gate above: a quiz with
                 nobody enrolled to sit it, and money arriving before anybody
-                claims their seat, are things an instructor should still be
+                redeems their coupon, are things an instructor should still be
                 told about rather than shown one "nobody is enrolled" card in
                 place of. */}
             {quizzes && (
@@ -1817,10 +1813,10 @@ export default function InstructorAnalytics({
                 <CardContent className="p-6">
                   <h2 className="text-lg font-semibold">Quiz results</h2>
                   <p className="mb-4 text-sm text-muted-foreground">
-                    One result per student per quiz, counting their best attempt
-                    — the same basis as the student roster. Retakes are not
-                    counted separately, so a quiz people get on the second go
-                    still reads as passed. Attempts made in this period only.
+                    One result per student per quiz, based on their best attempt,
+                    the same as the student roster. A quiz passed on a later
+                    attempt counts as passed. Only attempts made in this period
+                    count.
                   </p>
                   <QuizPassRates quizzes={quizzes} />
                 </CardContent>
@@ -1840,14 +1836,14 @@ export default function InstructorAnalytics({
               <CardContent className="p-6">
                 {revenueRows.length === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No sales in this period yet.
+                    No purchases in this period yet.
                   </p>
                 ) : (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
                         <th className="pb-2 font-medium">Course</th>
-                        <th className="pb-2 text-right font-medium">Sales</th>
+                        <th className="pb-2 text-right font-medium">Purchases</th>
                         <th className="pb-2 text-right font-medium">Gross</th>
                         <th className="pb-2 text-right font-medium">
                           Fee ({PLATFORM_FEE_PERCENT}%)
@@ -1909,16 +1905,18 @@ export function HydrateFallback() {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading your analytics.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
         typeof error.data === "string"
           ? error.data
-          : "Please select a user from the DevUI panel.";
+          : "Log in to continue.";
     } else if (error.status === 403) {
-      title = "Not allowed";
+      title = "Access denied";
       message =
         typeof error.data === "string"
           ? error.data
@@ -1935,9 +1933,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <AlertTriangle className="mx-auto mb-4 size-12 text-muted-foreground" />
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
-        <Link to="/courses">
-          <Button>Browse Courses</Button>
-        </Link>
+        <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
+          <Link to="/courses">
+            <Button>Browse courses</Button>
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -2,11 +2,9 @@ import { useState } from "react";
 import { Link, useFetcher, useNavigate } from "react-router";
 import { toast } from "sonner";
 import type { Route } from "./+types/instructor.$courseId.lessons.$lessonId.quiz";
-import { getCurrentUserId } from "~/lib/session";
+import { requireStaff } from "~/lib/access.server";
 import {
-  UserRole,
   QuestionType,
-  users,
   courses,
   modules,
   lessons,
@@ -111,10 +109,6 @@ interface WizardState {
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
-}
-
-function getUserById(id: number) {
-  return db.select().from(users).where(eq(users.id, id)).get();
 }
 
 function getCourseById(id: number) {
@@ -278,22 +272,6 @@ export function meta({ loaderData }: Route.MetaArgs) {
 // ─── Loader ───
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
-  }
-
-  const user = getUserById(currentUserId);
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can access this page.", {
-      status: 403,
-    });
-  }
-
   const courseId = parseInt(params.courseId, 10);
   if (isNaN(courseId)) {
     throw data("Invalid course ID.", { status: 400 });
@@ -304,9 +282,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only edit your own courses.", { status: 403 });
-  }
+  await requireStaff(request, courseId);
 
   const lessonId = parseInt(params.lessonId, 10);
   if (isNaN(lessonId)) {
@@ -335,31 +311,14 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 // ─── Action ───
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("You must be logged in.", { status: 401 });
-  }
-
-  const user = getUserById(currentUserId);
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can manage quizzes.", {
-      status: 403,
-    });
-  }
-
   const { courseId, lessonId } = parseParams(params, quizParamsSchema);
 
   const course = getCourseById(courseId);
-  if (
-    !course ||
-    (course.instructorId !== currentUserId && user.role !== UserRole.Admin)
-  ) {
-    throw data("Course not found or not yours.", { status: 403 });
+  if (!course) {
+    throw data("Course not found.", { status: 404 });
   }
+
+  await requireStaff(request, courseId);
 
   const lesson = getLessonById(lessonId);
   if (!lesson) {
@@ -438,8 +397,8 @@ export async function action({ params, request }: Route.ActionArgs) {
 const STEPS = [
   { label: "Settings", number: 1 },
   { label: "Questions", number: 2 },
-  { label: "Answers", number: 3 },
-  { label: "Review", number: 4 },
+  { label: "Options", number: 3 },
+  { label: "Check", number: 4 },
 ];
 
 function StepIndicator({
@@ -534,14 +493,14 @@ export default function QuizBuilderWizard({
     return (
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">Quiz Settings</h2>
+          <h2 className="text-lg font-semibold">Quiz settings</h2>
           <p className="text-sm text-muted-foreground">
             Set the quiz title and passing score.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="quizTitle">Quiz Title</Label>
+            <Label htmlFor="quizTitle">Quiz title</Label>
             <Input
               id="quizTitle"
               value={wizard.title}
@@ -552,7 +511,7 @@ export default function QuizBuilderWizard({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="passingScore">Passing Score (%)</Label>
+            <Label htmlFor="passingScore">Passing score (%)</Label>
             <Input
               id="passingScore"
               type="number"
@@ -654,14 +613,14 @@ export default function QuizBuilderWizard({
           <CardHeader>
             <h2 className="text-lg font-semibold">Questions</h2>
             <p className="text-sm text-muted-foreground">
-              Add questions to your quiz. Drag to reorder. You&apos;ll set
-              answer options in the next step.
+              Add questions to your quiz. Drag to reorder. You&apos;ll add
+              options in the next step.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {wizard.questions.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No questions added yet. Click &quot;Add Question&quot; to get
+                No questions added yet. Click &quot;Add question&quot; to get
                 started.
               </p>
             )}
@@ -724,7 +683,7 @@ export default function QuizBuilderWizard({
                                     <SelectItem
                                       value={QuestionType.MultipleChoice}
                                     >
-                                      Multiple Choice
+                                      Multiple choice
                                     </SelectItem>
                                     <SelectItem value={QuestionType.TrueFalse}>
                                       True / False
@@ -753,7 +712,7 @@ export default function QuizBuilderWizard({
 
             <Button variant="outline" onClick={addQuestion}>
               <Plus className="mr-1.5 size-4" />
-              Add Question
+              Add question
             </Button>
           </CardContent>
         </Card>
@@ -761,7 +720,7 @@ export default function QuizBuilderWizard({
     );
   }
 
-  // ─── Step 3: Answers ───
+  // ─── Step 3: Options ───
   function addOption(questionId: string) {
     setWizard((prev) => ({
       ...prev,
@@ -831,9 +790,9 @@ export default function QuizBuilderWizard({
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Answer Options</h2>
+            <h2 className="text-lg font-semibold">Options</h2>
             <p className="text-sm text-muted-foreground">
-              Set answer options for each question and mark the correct answer.
+              Add options to each question and mark the correct one.
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -855,7 +814,7 @@ export default function QuizBuilderWizard({
                   <span className="ml-auto text-xs text-muted-foreground">
                     {q.type === QuestionType.TrueFalse
                       ? "True/False"
-                      : "Multiple Choice"}
+                      : "Multiple choice"}
                   </span>
                 </div>
 
@@ -910,7 +869,7 @@ export default function QuizBuilderWizard({
                     className="mt-2"
                   >
                     <Plus className="mr-1 size-3" />
-                    Add Option
+                    Add option
                   </Button>
                 )}
               </div>
@@ -921,7 +880,7 @@ export default function QuizBuilderWizard({
     );
   }
 
-  // ─── Step 4: Review ───
+  // ─── Step 4: Check ───
   function renderStep4() {
     const validationErrors: string[] = [];
     if (!wizard.title.trim()) validationErrors.push("Quiz title is required.");
@@ -938,7 +897,7 @@ export default function QuizBuilderWizard({
         );
       if (!q.options.some((o) => o.isCorrect))
         validationErrors.push(
-          `Question ${wizard.questions.indexOf(q) + 1} has no correct answer.`
+          `Question ${wizard.questions.indexOf(q) + 1} has no correct option.`
         );
       for (const opt of q.options) {
         if (!opt.text.trim())
@@ -954,9 +913,9 @@ export default function QuizBuilderWizard({
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Review Quiz</h2>
+            <h2 className="text-lg font-semibold">Check quiz</h2>
             <p className="text-sm text-muted-foreground">
-              Review your quiz before saving.
+              Check your quiz before saving.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -968,7 +927,7 @@ export default function QuizBuilderWizard({
                   {wizard.title || "(empty)"}
                 </div>
                 <div>
-                  <span className="font-medium">Passing Score:</span>{" "}
+                  <span className="font-medium">Passing score:</span>{" "}
                   {wizard.passingScore}%
                 </div>
                 <div>
@@ -978,7 +937,7 @@ export default function QuizBuilderWizard({
               </div>
             </div>
 
-            {/* Questions review */}
+            {/* Questions check */}
             {wizard.questions.map((q, idx) => (
               <div key={q.id} className="rounded-lg border p-4">
                 <div className="mb-2 flex items-center gap-2">
@@ -991,7 +950,7 @@ export default function QuizBuilderWizard({
                   <span className="ml-auto text-xs text-muted-foreground">
                     {q.type === QuestionType.TrueFalse
                       ? "True/False"
-                      : "Multiple Choice"}
+                      : "Multiple choice"}
                   </span>
                 </div>
                 <div className="ml-8 space-y-1">
@@ -1050,8 +1009,8 @@ export default function QuizBuilderWizard({
                 {fetcher.state !== "idle"
                   ? "Saving..."
                   : isEditing
-                    ? "Update Quiz"
-                    : "Create Quiz"}
+                    ? "Update quiz"
+                    : "Create quiz"}
               </Button>
 
               {fetcherData?.error && (
@@ -1079,7 +1038,7 @@ export default function QuizBuilderWizard({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <Link to={`/instructor/${course.id}`} className="hover:text-foreground">
@@ -1094,7 +1053,7 @@ export default function QuizBuilderWizard({
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">
-          {isEditing ? "Edit Quiz" : "Create Quiz"}
+          {isEditing ? "Edit quiz" : "Create quiz"}
         </span>
       </nav>
 
@@ -1103,13 +1062,13 @@ export default function QuizBuilderWizard({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to Lesson Editor
+        Back to lesson editor
       </Link>
 
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">
-            {isEditing ? "Edit Quiz" : "Create Quiz"}
+            {isEditing ? "Edit quiz" : "Create quiz"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Lesson: {lesson.title}
@@ -1130,7 +1089,7 @@ export default function QuizBuilderWizard({
             }}
           >
             <Trash2 className="mr-1.5 size-4" />
-            Delete Quiz
+            Delete quiz
           </Button>
         )}
       </div>
@@ -1168,17 +1127,17 @@ export default function QuizBuilderWizard({
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading the quiz builder.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       title = "Not found";
       message = "The quiz, lesson, or course you're looking for doesn't exist.";
     } else if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Access denied";
       message =
@@ -1198,11 +1157,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

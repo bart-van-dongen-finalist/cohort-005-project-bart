@@ -8,10 +8,11 @@ import { BookOpen, GraduationCap, Users, ArrowRight, User, Moon, Sun } from "luc
 import { CourseImage } from "~/components/course-image";
 import { DevUI } from "~/components/dev-ui";
 import { getCurrentUserId, getDevCountry } from "~/lib/session";
-import { getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
+import { getDiscountLevelInfo, COUNTRIES } from "~/lib/regional-discount";
 import { eq, like, and, or, sql } from "drizzle-orm";
 import { db } from "~/db";
 import { courses, categories, users, modules, lessons } from "~/db/schema";
+import { pluralize } from "~/lib/pluralize";
 
 function getAllUsers() {
   return db.select().from(users).all();
@@ -58,7 +59,7 @@ function buildCourseQuery(
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -122,7 +123,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
   const currentUser = currentUserId ? getUserById(currentUserId) : null;
   const devCountry = await getDevCountry(request);
-  const countryTierInfo = getCountryTierInfo(devCountry);
+  const discountLevelInfo = getDiscountLevelInfo(devCountry);
 
   return {
     featuredCourses: featured,
@@ -133,13 +134,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       ? { id: currentUser.id, name: currentUser.name, role: currentUser.role }
       : null,
     devCountry,
-    countryTierInfo,
+    discountLevelInfo,
     countries: COUNTRIES,
   };
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-  const { featuredCourses, totalCourses, totalCategories, users, currentUser, devCountry, countryTierInfo, countries } = loaderData;
+  const { featuredCourses, totalCourses, totalCategories, users, currentUser, devCountry, discountLevelInfo, countries } = loaderData;
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
@@ -186,10 +187,10 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                   to="/login"
                   className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
-                  Log In
+                  Log in
                 </Link>
                 <Button asChild size="sm">
-                  <Link to="/signup">Sign Up</Link>
+                  <Link to="/signup">Sign up</Link>
                 </Button>
               </>
             )}
@@ -210,7 +211,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <div className="mt-10 flex items-center justify-center gap-4">
           <Button asChild size="lg">
             <Link to="/courses">
-              Browse Courses
+              Browse courses
               <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
@@ -224,7 +225,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <BookOpen className="size-6 text-primary" />
             </div>
             <p className="text-2xl font-bold">{totalCourses}</p>
-            <p className="text-sm text-muted-foreground">Available Courses</p>
+            <p className="text-sm text-muted-foreground">Available courses</p>
           </div>
           <div className="text-center">
             <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/10">
@@ -247,7 +248,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <section className="mx-auto max-w-6xl px-6 py-20">
           <div className="mb-10 flex items-end justify-between">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Featured Courses</h2>
+              <h2 className="text-3xl font-bold tracking-tight">Featured courses</h2>
               <p className="mt-2 text-muted-foreground">
                 Start learning with our most popular courses
               </p>
@@ -285,7 +286,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     </span>
                     <span className="flex items-center gap-1">
                       <BookOpen className="size-3" />
-                      {course.lessonCount} lessons
+                      {pluralize(course.lessonCount, "lesson")}
                     </span>
                   </CardFooter>
                 </Card>
@@ -305,7 +306,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         users={users}
         currentUser={currentUser}
         devCountry={devCountry}
-        countryTierInfo={countryTierInfo}
+        discountLevelInfo={discountLevelInfo}
         countries={countries}
       />
     </div>

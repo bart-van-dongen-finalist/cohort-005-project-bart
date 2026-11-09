@@ -23,8 +23,9 @@ import { UserAvatar } from "~/components/user-avatar";
 import { getCurrentUserId } from "~/lib/session";
 import { formatPrice } from "~/lib/utils";
 import { resolveCountry } from "~/lib/country.server";
-import { calculatePppPrice } from "~/lib/ppp";
+import { calculateRegionalPrice } from "~/lib/regional-discount";
 import { StarRating } from "~/components/star-rating";
+import { pluralize } from "~/lib/pluralize";
 
 function buildCourseQuery(
   search: string | null,
@@ -59,7 +60,7 @@ function buildCourseQuery(
       status: coursesTable.status,
       coverImageUrl: coursesTable.coverImageUrl,
       price: coursesTable.price,
-      pppEnabled: coursesTable.pppEnabled,
+      regionalDiscountEnabled: coursesTable.regionalDiscountEnabled,
       createdAt: coursesTable.createdAt,
       updatedAt: coursesTable.updatedAt,
       instructorName: users.name,
@@ -273,7 +274,7 @@ function getCourseRatingSummaries(
 
 export function meta() {
   return [
-    { title: "Browse Courses — Cadence" },
+    { title: "Browse courses — Cadence" },
     { name: "description", content: "Browse all available courses" },
   ];
 }
@@ -313,8 +314,8 @@ export async function loader({ request, url }: Route.LoaderArgs) {
 
   const coursesWithLessonCount = courses.map((course) => {
     const userProgress = progressMap.get(course.id);
-    const pppPrice = course.pppEnabled
-      ? calculatePppPrice(course.price, country)
+    const regionalPrice = course.regionalDiscountEnabled
+      ? calculateRegionalPrice(course.price, country)
       : course.price;
     const rating = ratingSummaries.get(course.id);
     return {
@@ -322,7 +323,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
       lessonCount: getLessonCountForCourse(course.id),
       progress: userProgress?.progress ?? null,
       completedLessons: userProgress?.completedLessons ?? null,
-      pppPrice,
+      regionalPrice,
       ratingAverage: rating?.average ?? null,
       ratingCount: rating?.count ?? 0,
     };
@@ -386,7 +387,7 @@ export default function CourseCatalog({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto max-w-7xl p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Browse Courses</h1>
+        <h1 className="text-3xl font-bold">Browse courses</h1>
         <p className="mt-1 text-muted-foreground">
           Find courses to expand your skills
         </p>
@@ -409,7 +410,7 @@ export default function CourseCatalog({ loaderData }: Route.ComponentProps) {
           defaultValue={category ?? ""}
           className="h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <option value="">All Categories</option>
+          <option value="">All categories</option>
           {categories.map((cat) => (
             <option key={cat.id} value={cat.slug}>
               {cat.name}
@@ -457,7 +458,7 @@ export default function CourseCatalog({ loaderData }: Route.ComponentProps) {
                     <span className="text-primary">{course.categoryName}</span>
                     {currentUserId !== null && course.instructorId === currentUserId && (
                       <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        Your Course
+                        Your course
                       </span>
                     )}
                   </div>
@@ -479,7 +480,8 @@ export default function CourseCatalog({ loaderData }: Route.ComponentProps) {
                   <CardContent className="pt-0">
                     <div className="mb-1 flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">
-                        {course.completedLessons} / {course.lessonCount} lessons
+                        {course.completedLessons} /{" "}
+                        {pluralize(course.lessonCount, "lesson")}
                       </span>
                       <span className="font-medium">{course.progress}%</span>
                     </div>
@@ -501,12 +503,12 @@ export default function CourseCatalog({ loaderData }: Route.ComponentProps) {
                     {course.instructorName}
                   </span>
                   <span className="font-semibold text-foreground">
-                    {course.pppPrice < course.price ? (
+                    {course.regionalPrice < course.price ? (
                       <span className="flex items-center gap-1.5">
                         <span className="text-xs line-through text-muted-foreground font-normal">
                           {formatPrice(course.price)}
                         </span>
-                        {formatPrice(course.pppPrice)}
+                        {formatPrice(course.regionalPrice)}
                       </span>
                     ) : (
                       formatPrice(course.price)
@@ -539,7 +541,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

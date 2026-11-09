@@ -1861,11 +1861,11 @@ This course is still in draft while the cluster examples are rewritten against t
   console.log(`Created ${countRows(schema.courseRatings)} course ratings.`);
 
   // ─── Lesson Comments ───
-  // Covers every state the Q&A feature can be in, so the instructor queue and
-  // the lesson thread both have something real to render: answered threads,
-  // questions still waiting (two of them stale enough to flag), a question only
-  // another student replied to (still unanswered), an edited comment, and a
-  // deleted question kept as a tombstone because it has a reply.
+  // Covers every state a comment can be in, so the unanswered-comments queue
+  // and the lesson thread both have something real to render: answered
+  // threads, unanswered comments (two of them stale enough to flag), a comment
+  // only another student replied to (still unanswered), an edited comment, and
+  // a deleted comment kept as a tombstone because it has a reply.
   // Only enrolled students comment.
 
   function comment(values: typeof schema.comments.$inferInsert) {
@@ -1873,8 +1873,8 @@ This course is still in draft while the cluster examples are rewritten against t
     return row;
   }
 
-  // Answered: student asks, Sarah answers, student confirms.
-  const c1q1 = comment({
+  // Answered: student asks, Sarah replies, student confirms.
+  const c1c1 = comment({
     lessonId: course1LessonIds[2],
     userId: students[0].id,
     body: "I'm getting `tsc: command not found` when I run the compile step. Did I miss an install somewhere?",
@@ -1883,19 +1883,19 @@ This course is still in draft while the cluster examples are rewritten against t
   comment({
     lessonId: course1LessonIds[2],
     userId: instructor1.id,
-    parentId: c1q1.id,
+    parentId: c1c1.id,
     body: "That usually means TypeScript is installed locally but not on your PATH. Two options:\n\n```bash\nnpx tsc --version\n```\n\nor install it globally with `npm i -g typescript`. I'd stick with `npx` — it keeps the version pinned to the project.",
     createdAt: daysAgo(29),
   });
   comment({
     lessonId: course1LessonIds[2],
     userId: students[0].id,
-    parentId: c1q1.id,
+    parentId: c1c1.id,
     body: "`npx` did it. Thank you!",
     createdAt: daysAgo(29),
   });
 
-  // Waiting, and stale enough to flag amber in the queue.
+  // Unanswered, and stale enough to flag amber in the queue.
   comment({
     lessonId: course1LessonIds[7],
     userId: students[2].id,
@@ -1903,7 +1903,7 @@ This course is still in draft while the cluster examples are rewritten against t
     createdAt: daysAgo(6),
   });
 
-  // Waiting, but posted today — should look calm in the queue.
+  // Unanswered, but posted today — should look calm in the queue.
   comment({
     lessonId: course1LessonIds[4],
     userId: students[4].id,
@@ -1912,7 +1912,7 @@ This course is still in draft while the cluster examples are rewritten against t
   });
 
   // Another student replied, but no staff has — still counts as unanswered.
-  const c1q4 = comment({
+  const c1c4 = comment({
     lessonId: course1LessonIds[3],
     userId: students[1].id,
     body: "Does strict mode change anything about how this example behaves?",
@@ -1921,13 +1921,13 @@ This course is still in draft while the cluster examples are rewritten against t
   comment({
     lessonId: course1LessonIds[3],
     userId: students[0].id,
-    parentId: c1q4.id,
+    parentId: c1c4.id,
     body: "I think it only affects the null checks, but I'd like a second opinion too.",
     createdAt: daysAgo(4),
   });
 
   // Edited by its author — renders an "(edited)" marker.
-  const c1q5 = comment({
+  const c1c5 = comment({
     lessonId: course1LessonIds[0],
     userId: students[1].id,
     body: "Coming from JavaScript, how much of this will feel familiar? (Edited to add: I've used JSDoc types before.)",
@@ -1937,13 +1937,13 @@ This course is still in draft while the cluster examples are rewritten against t
   comment({
     lessonId: course1LessonIds[0],
     userId: instructor1.id,
-    parentId: c1q5.id,
+    parentId: c1c5.id,
     body: "Most of it. If you've written JSDoc types you already understand the mental model — the syntax is just less noisy.",
     createdAt: daysAgo(39),
   });
 
-  // Deleted question that keeps its reply — renders as a tombstone.
-  const c1q6 = comment({
+  // Deleted comment that keeps its reply — renders as a tombstone.
+  const c1c6 = comment({
     lessonId: course1LessonIds[1],
     userId: students[4].id,
     body: "Posted this on the wrong lesson, sorry!",
@@ -1953,12 +1953,12 @@ This course is still in draft while the cluster examples are rewritten against t
   comment({
     lessonId: course1LessonIds[1],
     userId: instructor1.id,
-    parentId: c1q6.id,
+    parentId: c1c6.id,
     body: "No problem at all — asked and answered over on the generics lesson.",
     createdAt: daysAgo(12),
   });
 
-  // Course 2: waiting a long time.
+  // Course 2: unanswered for a long time.
   comment({
     lessonId: course2LessonIds[2],
     userId: students[3].id,
@@ -1967,7 +1967,7 @@ This course is still in draft while the cluster examples are rewritten against t
   });
 
   // Course 2: answered by an admin rather than the owning instructor.
-  const c2q2 = comment({
+  const c2c2 = comment({
     lessonId: course2LessonIds[0],
     userId: students[2].id,
     body: "Are the example requests in this lesson hitting a real API, or is it all mocked?",
@@ -1976,12 +1976,12 @@ This course is still in draft while the cluster examples are rewritten against t
   comment({
     lessonId: course2LessonIds[0],
     userId: admin.id,
-    parentId: c2q2.id,
+    parentId: c2c2.id,
     body: "All mocked — nothing leaves your machine. The repo linked on the lesson has the fixtures.",
     createdAt: daysAgo(13),
   });
 
-  // An instructor's own top-level post never queues up as work for themselves.
+  // An instructor's own top-level comment never queues up as work for themselves.
   comment({
     lessonId: course2LessonIds[1],
     userId: instructor2.id,
@@ -2248,7 +2248,7 @@ This course is still in draft while the cluster examples are rewritten against t
 
   db.insert(schema.purchases)
     .values({
-      userId: students[1].id, // James — bought course 1 with PPP discount (India)
+      userId: students[1].id, // James — bought course 1 with a Regional discount (India)
       courseId: course1.id,
       amountPaid: 2500,
       country: "IN",
@@ -2291,7 +2291,7 @@ This course is still in draft while the cluster examples are rewritten against t
     .values({
       teamId: team1.id,
       userId: bossy.id,
-      role: TeamMemberRole.Admin,
+      role: TeamMemberRole.Owner,
       createdAt: daysAgo(30),
     })
     .run();
@@ -2353,7 +2353,7 @@ This course is still in draft while the cluster examples are rewritten against t
     .run();
 
   console.log(
-    `Created 1 team with Bossy McBossface as admin, 1 team purchase, and ${seededCoupons.length} coupons (${countRows(schema.coupons, isNotNull(schema.coupons.redeemedByUserId))} redeemed, ${countRows(schema.coupons, isNull(schema.coupons.redeemedByUserId))} available).`
+    `Created 1 team with Bossy McBossface as Team owner, 1 team purchase, and ${seededCoupons.length} coupons (${countRows(schema.coupons, isNotNull(schema.coupons.redeemedByUserId))} redeemed, ${countRows(schema.coupons, isNull(schema.coupons.redeemedByUserId))} available).`
   );
 
   // ─── Generated history ───
@@ -2423,7 +2423,7 @@ This course is still in draft while the cluster examples are rewritten against t
   ];
 
   const fullPriceCountries = ["US", "GB", "DE", "CA", "AU", "NL"];
-  const pppCountries = ["IN", "BR", "PH", "NG", "ID", "VN"];
+  const discountedCountries = ["IN", "BR", "PH", "NG", "ID", "VN"];
 
   const sold = new Set<string>();
   let generatedPurchases = 0;
@@ -2450,12 +2450,12 @@ This course is still in draft while the cluster examples are rewritten against t
     const target = available[Math.floor(random() * available.length)];
     sold.add(`${buyer.id}:${target.course.id}`);
 
-    // Two in five buy at a parity-adjusted price.
-    const ppp = random() < 0.4;
-    const country = ppp
-      ? pppCountries[Math.floor(random() * pppCountries.length)]
+    // Two in five buy at a Regional discount.
+    const regionallyDiscounted = random() < 0.4;
+    const country = regionallyDiscounted
+      ? discountedCountries[Math.floor(random() * discountedCountries.length)]
       : fullPriceCountries[Math.floor(random() * fullPriceCountries.length)];
-    const amountPaid = ppp
+    const amountPaid = regionallyDiscounted
       ? Math.round((target.course.price * 0.5) / 100) * 100
       : target.course.price;
 
@@ -2612,14 +2612,14 @@ This course is still in draft while the cluster examples are rewritten against t
   // bought and redeemed nothing yet.
 
   function createTeamPurchase(
-    adminEmail: string,
+    ownerEmail: string,
     course: typeof course1,
     seats: number,
     codePrefix: string,
     purchasedDaysAgo: number,
     redeemerEmails: string[]
   ) {
-    const teamAdmin = studentByEmail(adminEmail);
+    const teamOwner = studentByEmail(ownerEmail);
 
     const [team] = db
       .insert(schema.teams)
@@ -2630,8 +2630,8 @@ This course is still in draft while the cluster examples are rewritten against t
     db.insert(schema.teamMembers)
       .values({
         teamId: team.id,
-        userId: teamAdmin.id,
-        role: TeamMemberRole.Admin,
+        userId: teamOwner.id,
+        role: TeamMemberRole.Owner,
         createdAt: daysAgo(purchasedDaysAgo),
       })
       .run();
@@ -2639,7 +2639,7 @@ This course is still in draft while the cluster examples are rewritten against t
     const [purchase] = db
       .insert(schema.purchases)
       .values({
-        userId: teamAdmin.id,
+        userId: teamOwner.id,
         courseId: course.id,
         amountPaid: course.price * seats,
         country: "US",
@@ -2724,8 +2724,8 @@ This course is still in draft while the cluster examples are rewritten against t
   );
 
   // ─── Liam's Purchase ───
-  // One learner part-way through a recent purchase, with no request raised, so
-  // the course page offers "Cancel my purchase". The dates count back from
+  // One Student part-way through a recent purchase, with no request raised, so
+  // the course page offers "Request a refund". The dates count back from
   // today, so the fourteen-day refund window is still open whenever you seed.
 
   const liam = studentByEmail("liam@example.com");

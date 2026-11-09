@@ -17,6 +17,7 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { AlertTriangle, BookOpen, CheckCircle2, GraduationCap, PlayCircle } from "lucide-react";
 import { CourseImage } from "~/components/course-image";
 import { data, isRouteErrorResponse } from "react-router";
+import { pluralize } from "~/lib/pluralize";
 
 function getUserEnrolledCourses(userId: number) {
   return db
@@ -192,7 +193,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
 
   if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to view your dashboard.", {
+    throw data("Log in to continue.", {
       status: 401,
     });
   }
@@ -283,7 +284,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Dashboard</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="mt-1 text-muted-foreground">
           Track your learning progress
         </p>
@@ -297,15 +298,15 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
             Browse the catalog to find courses and start learning.
           </p>
           <Link to="/courses" className="mt-4">
-            <Button>Browse Courses</Button>
+            <Button>Browse courses</Button>
           </Link>
         </div>
       ) : (
         <div className="space-y-8">
-          {/* In Progress Courses */}
+          {/* In progress Courses */}
           {inProgressCourses.length > 0 && (
             <section>
-              <h2 className="mb-4 text-xl font-semibold">In Progress</h2>
+              <h2 className="mb-4 text-xl font-semibold">In progress</h2>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {inProgressCourses.map((course) => (
                   <Card key={course.enrollmentId} className="flex flex-col overflow-hidden pt-0">
@@ -330,8 +331,8 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                     <CardContent className="flex-1">
                       <div className="mb-2 flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
-                          {course.completedLessons} / {course.totalLessons}{" "}
-                          lessons
+                          {course.completedLessons} /{" "}
+                          {pluralize(course.totalLessons, "lesson")}
                         </span>
                         <span className="font-medium">{course.progress}%</span>
                       </div>
@@ -350,7 +351,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                         >
                           <Button className="w-full" variant="outline">
                             <PlayCircle className="mr-2 size-4" />
-                            Continue Learning
+                            Continue learning
                           </Button>
                         </Link>
                       ) : (
@@ -360,7 +361,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                         >
                           <Button className="w-full" variant="outline">
                             <BookOpen className="mr-2 size-4" />
-                            View Course
+                            View course
                           </Button>
                         </Link>
                       )}
@@ -403,7 +404,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                       <div className="flex items-center gap-2 text-sm text-green-600">
                         <CheckCircle2 className="size-4" />
                         <span>
-                          Completed — {course.totalLessons} lessons
+                          Completed — {pluralize(course.totalLessons, "lesson")}
                         </span>
                       </div>
                     </CardContent>
@@ -414,7 +415,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                       >
                         <Button className="w-full" variant="outline">
                           <BookOpen className="mr-2 size-4" />
-                          Review Course
+                          Revisit course
                         </Button>
                       </Link>
                     </CardFooter>
@@ -432,11 +433,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading your dashboard.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
-      message = typeof error.data === "string" ? error.data : "Please select a user from the DevUI panel.";
+      title = "Log in required";
+      showLogIn = true;
+      message = typeof error.data === "string" ? error.data : "Log in to continue.";
     } else {
       title = `Error ${error.status}`;
       message = typeof error.data === "string" ? error.data : error.statusText;
@@ -450,11 +453,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

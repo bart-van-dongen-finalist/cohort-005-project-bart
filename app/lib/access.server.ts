@@ -10,7 +10,7 @@ import {
 } from "~/db/schema";
 import { getCurrentUserId } from "~/lib/session";
 import { resolveCountry } from "~/lib/country.server";
-import { checkPppAccess } from "~/lib/ppp";
+import { checkRegionalDiscountAccess } from "~/lib/regional-discount";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -46,7 +46,7 @@ function findPurchase(userId: number, courseId: number) {
 // One place that answers "who is this, and what may they do with this course?".
 //
 // getAccess never throws — the lesson page needs to render a paywall preview for
-// signed-out and unenrolled visitors rather than erroring. The require* wrappers
+// logged-out and unenrolled visitors rather than erroring. The require* wrappers
 // are built on it for the routes that should just reject.
 //
 // Uses positional parameters (project convention).
@@ -57,29 +57,29 @@ export type Access = {
   isAdmin: boolean;
   /** The instructor who owns this specific course. */
   isOwningInstructor: boolean;
-  /** Owning instructor or admin — the people who speak for the course. */
+  /** Staff: the owning Instructor or an Admin, who speak for the course. */
   isStaff: boolean;
   enrolled: boolean;
-  pppBlocked: boolean;
-  pppBlockedCountry: string | null;
-  pppPurchaseCountry: string | null;
+  regionalDiscountBlocked: boolean;
+  regionalDiscountBlockedCountry: string | null;
+  regionalDiscountPurchaseCountry: string | null;
   /**
    * May they read the course's content (lesson bodies, comments)?
-   * Staff always can. Students need an enrollment that isn't PPP-blocked.
+   * Staff always can. Students need an enrollment that their Regional discount does not block.
    */
   canViewContent: boolean;
 };
 
-const SIGNED_OUT: Access = {
+const LOGGED_OUT: Access = {
   userId: null,
   user: undefined,
   isAdmin: false,
   isOwningInstructor: false,
   isStaff: false,
   enrolled: false,
-  pppBlocked: false,
-  pppBlockedCountry: null,
-  pppPurchaseCountry: null,
+  regionalDiscountBlocked: false,
+  regionalDiscountBlockedCountry: null,
+  regionalDiscountPurchaseCountry: null,
   canViewContent: false,
 };
 
@@ -88,10 +88,10 @@ export async function getAccess(
   courseId: number
 ): Promise<Access> {
   const userId = await getCurrentUserId(request);
-  if (!userId) return SIGNED_OUT;
+  if (!userId) return LOGGED_OUT;
 
   const user = getUserById(userId);
-  if (!user) return SIGNED_OUT;
+  if (!user) return LOGGED_OUT;
 
   const course = getCourseById(courseId);
   const isAdmin = user.role === UserRole.Admin;
@@ -99,8 +99,8 @@ export async function getAccess(
   const isStaff = isAdmin || isOwningInstructor;
   const enrolled = isUserEnrolled(userId, courseId);
 
-  // PPP only restricts students who bought at a discount — staff are exempt.
-  let ppp = {
+  // A Regional discount only restricts students who bought at a discount — staff are exempt.
+  let regionalDiscountAccess = {
     blocked: false,
     blockedCountry: null as string | null,
     purchaseCountry: null as string | null,
@@ -109,9 +109,9 @@ export async function getAccess(
   if (enrolled && !isStaff && course) {
     const purchase = findPurchase(userId, courseId);
     const currentCountry = await resolveCountry(request);
-    ppp = checkPppAccess(
+    regionalDiscountAccess = checkRegionalDiscountAccess(
       course.price,
-      course.pppEnabled,
+      course.regionalDiscountEnabled,
       purchase?.country ?? null,
       currentCountry
     );
@@ -124,26 +124,26 @@ export async function getAccess(
     isOwningInstructor,
     isStaff,
     enrolled,
-    pppBlocked: ppp.blocked,
-    pppBlockedCountry: ppp.blockedCountry,
-    pppPurchaseCountry: ppp.purchaseCountry,
-    canViewContent: isStaff || (enrolled && !ppp.blocked),
+    regionalDiscountBlocked: regionalDiscountAccess.blocked,
+    regionalDiscountBlockedCountry: regionalDiscountAccess.blockedCountry,
+    regionalDiscountPurchaseCountry: regionalDiscountAccess.purchaseCountry,
+    canViewContent: isStaff || (enrolled && !regionalDiscountAccess.blocked),
   };
 }
 
 /**
- * Throws 401 unless someone is signed in. Returns their user id.
+ * Throws 401 unless someone is logged in. Returns their user id.
  */
 export async function requireUserId(request: Request): Promise<number> {
   const userId = await getCurrentUserId(request);
   if (!userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
   return userId;
 }
 
 /**
- * Throws 401 when signed out, 403 when the user can't see the course's content.
+ * Throws 401 when logged out, 403 when the user can't see the course's content.
  * Use in actions — loader guards don't protect actions.
  */
 export async function requireContentAccess(
@@ -153,7 +153,7 @@ export async function requireContentAccess(
   const access = await getAccess(request, courseId);
 
   if (!access.userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
 
   if (!access.canViewContent) {
@@ -173,7 +173,7 @@ export async function requireStaff(
   const access = await getAccess(request, courseId);
 
   if (!access.userId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
 
   if (!access.isStaff) {
@@ -184,10 +184,11 @@ export async function requireStaff(
 }
 
 /**
- * Throws unless the user is an instructor or an admin, without tying them to a
- * particular course — for pages that span all of someone's courses.
+ * Throws unless the user has a Staff role (any Instructor, or an Admin),
+ * without tying them to a particular course — for pages that span all of
+ * someone's courses.
  */
-export async function requireInstructorOrAdmin(request: Request) {
+export async function requireStaffRole(request: Request) {
   const userId = await requireUserId(request);
   const user = getUserById(userId);
 

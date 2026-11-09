@@ -5,7 +5,7 @@ import { setCurrentUserId } from "~/lib/session";
 import { parseFormData } from "~/lib/validation";
 
 const switchUserSchema = z.object({
-  userId: z.coerce.number().int().positive("Invalid user ID"),
+  userId: z.coerce.number().int().positive("Invalid user ID."),
 });
 
 export async function action({ request, url }: Route.ActionArgs) {
@@ -13,7 +13,7 @@ export async function action({ request, url }: Route.ActionArgs) {
   const parsed = parseFormData(formData, switchUserSchema);
 
   if (!parsed.success) {
-    throw new Response("Invalid user ID", { status: 400 });
+    throw new Response("Invalid user ID.", { status: 400 });
   }
 
   const cookie = await setCurrentUserId(request, parsed.data.userId);

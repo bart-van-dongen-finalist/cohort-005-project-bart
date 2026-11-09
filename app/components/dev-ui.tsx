@@ -15,7 +15,7 @@ interface DevUIProps {
   users: DevUser[];
   currentUser: DevUser | null;
   devCountry: string | null;
-  countryTierInfo: { tier: number; discount: number; label: string };
+  discountLevelInfo: { level: number; discount: number; label: string };
   countries: { code: string; name: string }[];
 }
 
@@ -40,7 +40,7 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-export function DevUI({ users, currentUser, devCountry, countryTierInfo, countries }: DevUIProps) {
+export function DevUI({ users, currentUser, devCountry, discountLevelInfo, countries }: DevUIProps) {
   const [minimized, setMinimized] = useState(false);
   const [open, setOpen] = useState(false);
   const location = useLocation();
@@ -131,11 +131,11 @@ export function DevUI({ users, currentUser, devCountry, countryTierInfo, countri
           )}
         </div>
 
-        {/* Country Override (PPP) */}
+        {/* Country override (sets the Regional discount) */}
         <div className="mt-3 border-t border-dashed pt-3">
           <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Globe className="size-3" />
-            PPP Country
+            Country
           </div>
           <Form
             method="post"
@@ -157,12 +157,16 @@ export function DevUI({ users, currentUser, devCountry, countryTierInfo, countri
           </Form>
           {devCountry && (
             <div className="mt-1.5 text-xs text-muted-foreground">
-              Tier {countryTierInfo.tier} — {countryTierInfo.label}
-              {countryTierInfo.discount > 0 && (
-                <span className="ml-1 font-medium text-green-600">
-                  ({Math.round(countryTierInfo.discount * 100)}% discount)
-                </span>
-              )}
+              Discount:{" "}
+              <span
+                className={
+                  discountLevelInfo.discount > 0
+                    ? "font-medium text-green-600"
+                    : undefined
+                }
+              >
+                {discountLevelInfo.label}
+              </span>
             </div>
           )}
         </div>

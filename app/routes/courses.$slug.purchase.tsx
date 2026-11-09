@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import type { Route } from "./+types/courses.$slug.purchase";
 import { getCurrentUserId } from "~/lib/session";
+import { pluralize } from "~/lib/pluralize";
 import { db } from "~/db";
 import {
   courses,
@@ -36,7 +37,11 @@ import { UserAvatar } from "~/components/user-avatar";
 import { data } from "react-router";
 import { formatDuration, formatPrice } from "~/lib/utils";
 import { resolveCountry } from "~/lib/country.server";
-import { calculatePppPrice, getCountryTierInfo, COUNTRIES } from "~/lib/ppp";
+import {
+  calculateRegionalPrice,
+  getDiscountLevelInfo,
+  COUNTRIES,
+} from "~/lib/regional-discount";
 import { parseFormData, parseParams } from "~/lib/validation";
 
 function getCourseBySlug(slug: string) {
@@ -56,7 +61,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -151,7 +156,7 @@ function enrollUser(
   if (!skipValidation) {
     const existing = findEnrollment(userId, courseId);
     if (existing) {
-      throw new Error("User is already enrolled in this course");
+      throw new Error("User is already enrolled in this course.");
     }
 
     const course = db
@@ -160,7 +165,7 @@ function enrollUser(
       .where(eq(courses.id, courseId))
       .get();
     if (!course) {
-      throw new Error("Course not found");
+      throw new Error("Course not found.");
     }
   }
 
@@ -190,14 +195,14 @@ function createPurchase(
     .get();
 }
 
-function getTeamForAdmin(userId: number) {
+function getTeamForOwner(userId: number) {
   const membership = db
     .select()
     .from(teamMembers)
     .where(
       and(
         eq(teamMembers.userId, userId),
-        eq(teamMembers.role, TeamMemberRole.Admin)
+        eq(teamMembers.role, TeamMemberRole.Owner)
       )
     )
     .get();
@@ -208,12 +213,12 @@ function getTeamForAdmin(userId: number) {
 }
 
 function getOrCreateTeamForUser(userId: number) {
-  const existingTeam = getTeamForAdmin(userId);
+  const existingTeam = getTeamForOwner(userId);
   if (existingTeam) return existingTeam;
 
   const team = db.insert(teams).values({}).returning().get();
   db.insert(teamMembers)
-    .values({ teamId: team.id, userId, role: TeamMemberRole.Admin })
+    .values({ teamId: team.id, userId, role: TeamMemberRole.Owner })
     .returning()
     .get();
   return team;
@@ -270,8 +275,8 @@ const purchaseActionSchema = z.discriminatedUnion("intent", [
 export function meta({ loaderData }: Route.MetaArgs) {
   const title = loaderData?.course?.title ?? "Purchase";
   return [
-    { title: `Confirm Purchase: ${title} — Cadence` },
-    { name: "description", content: `Confirm your enrollment in ${title}` },
+    { title: `Confirm purchase: ${title} — Cadence` },
+    { name: "description", content: `Confirm your purchase of ${title}` },
   ];
 }
 
@@ -317,10 +322,10 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
   );
 
   const country = await resolveCountry(request);
-  const pppPrice = courseWithDetails.pppEnabled
-    ? calculatePppPrice(courseWithDetails.price, country)
+  const regionalPrice = courseWithDetails.regionalDiscountEnabled
+    ? calculateRegionalPrice(courseWithDetails.price, country)
     : courseWithDetails.price;
-  const tierInfo = getCountryTierInfo(country);
+  const discountLevelInfo = getDiscountLevelInfo(country);
   const countryName = country
     ? (COUNTRIES.find((c) => c.code === country)?.name ?? country)
     : null;
@@ -330,8 +335,8 @@ export async function loader({ params, request, url }: Route.LoaderArgs) {
     lessonCount,
     enrollmentCount,
     totalDuration,
-    pppPrice,
-    tierInfo,
+    regionalPrice,
+    discountLevelInfo,
     country,
     countryName,
     isEnrolled: enrolled,
@@ -359,22 +364,22 @@ export async function action({ params, request }: Route.ActionArgs) {
   }
 
   const country = await resolveCountry(request);
-  const pppPrice = course.pppEnabled
-    ? calculatePppPrice(course.price, country)
+  const regionalPrice = course.regionalDiscountEnabled
+    ? calculateRegionalPrice(course.price, country)
     : course.price;
 
   if (parsed.data.intent === "confirm-purchase") {
     if (isUserEnrolled(currentUserId, course.id)) {
       throw redirect(`/courses/${slug}`);
     }
-    createPurchase(currentUserId, course.id, pppPrice, country);
+    createPurchase(currentUserId, course.id, regionalPrice, country);
     enrollUser(currentUserId, course.id, false, false);
     throw redirect(`/courses/${slug}/welcome`);
   }
 
   // Team purchase — user does NOT get enrolled themselves
   const { quantity } = parsed.data;
-  const totalPrice = pppPrice * quantity;
+  const totalPrice = regionalPrice * quantity;
   createTeamPurchase(currentUserId, course.id, totalPrice, country, quantity);
   throw redirect(`/team`);
 }
@@ -387,8 +392,8 @@ export default function PurchaseConfirmation({
     lessonCount,
     enrollmentCount,
     totalDuration,
-    pppPrice,
-    tierInfo,
+    regionalPrice,
+    discountLevelInfo,
     countryName,
     isEnrolled,
   } = loaderData;
@@ -405,8 +410,8 @@ export default function PurchaseConfirmation({
     }
   }, [fetcher.state, fetcher.data]);
 
-  const isDiscounted = pppPrice < course.price;
-  const teamTotal = pppPrice * quantity;
+  const isDiscounted = regionalPrice < course.price;
+  const teamTotal = regionalPrice * quantity;
 
   return (
     <div className="mx-auto max-w-3xl p-6 lg:p-8">
@@ -419,9 +424,9 @@ export default function PurchaseConfirmation({
         Back to course
       </Link>
 
-      <h1 className="mb-2 text-2xl font-bold">Confirm Your Purchase</h1>
+      <h1 className="mb-2 text-2xl font-bold">Confirm your purchase</h1>
       <p className="mb-8 text-muted-foreground">
-        Review the details below before enrolling.
+        Check the details below before buying.
       </p>
 
       <Card>
@@ -458,7 +463,7 @@ export default function PurchaseConfirmation({
           <div className="mt-6 flex flex-wrap gap-6 border-t pt-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
               <BookOpen className="size-4" />
-              {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
+              {pluralize(lessonCount, "lesson")}
             </span>
             <span className="flex items-center gap-2">
               <Clock className="size-4" />
@@ -466,7 +471,7 @@ export default function PurchaseConfirmation({
             </span>
             <span className="flex items-center gap-2">
               <Users className="size-4" />
-              {enrollmentCount} {enrollmentCount === 1 ? "student" : "students"}{" "}
+              {pluralize(enrollmentCount, "student")}{" "}
               enrolled
             </span>
           </div>
@@ -476,7 +481,8 @@ export default function PurchaseConfirmation({
             {isDiscounted && countryName && (
               <div className="mb-4 rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
                 <p className="text-sm text-green-800 dark:text-green-300">
-                  PPP discount applied for {countryName} — {tierInfo.label}
+                  Regional discount applied for {countryName} —{" "}
+                  {discountLevelInfo.label}
                 </p>
               </div>
             )}
@@ -485,16 +491,16 @@ export default function PurchaseConfirmation({
               {!isEnrolled && (
                 <TabsList className="mb-6 w-full">
                   <TabsTrigger value="self" className="flex-1">
-                    Buy for Myself
+                    Buy for myself
                   </TabsTrigger>
                   <TabsTrigger value="team" className="flex-1">
-                    Buy for Your Team
+                    Buy for my team
                   </TabsTrigger>
                 </TabsList>
               )}
 
               <TabsContentNoShift>
-                {/* Buy for Myself */}
+                {/* Buy for myself */}
                 {!isEnrolled && (
                   <TabsContent value="self" forceMount>
                     <div className="flex items-center justify-between">
@@ -511,7 +517,7 @@ export default function PurchaseConfirmation({
                               Your price
                             </span>
                             <div className="text-3xl font-bold">
-                              {formatPrice(pppPrice)}
+                              {formatPrice(regionalPrice)}
                             </div>
                           </>
                         ) : (
@@ -520,14 +526,14 @@ export default function PurchaseConfirmation({
                               Total
                             </span>
                             <div className="text-3xl font-bold">
-                              {formatPrice(pppPrice)}
+                              {formatPrice(regionalPrice)}
                             </div>
                           </>
                         )}
                       </div>
                       <div className="flex items-center gap-3">
                         <Link to={`/courses/${course.slug}`}>
-                          <Button variant="outline">Go Back</Button>
+                          <Button variant="outline">Go back</Button>
                         </Link>
                         <fetcher.Form method="post">
                           <input
@@ -538,7 +544,7 @@ export default function PurchaseConfirmation({
                           <Button size="lg" disabled={isSubmitting}>
                             {isSubmitting
                               ? "Processing..."
-                              : "Confirm Purchase"}
+                              : "Confirm purchase"}
                           </Button>
                         </fetcher.Form>
                       </div>
@@ -546,7 +552,7 @@ export default function PurchaseConfirmation({
                   </TabsContent>
                 )}
 
-                {/* Buy for Your Team */}
+                {/* Buy for my team */}
                 <TabsContent value="team" forceMount>
                   <div className="space-y-6">
                     {/* Quantity selector */}
@@ -579,8 +585,8 @@ export default function PurchaseConfirmation({
                     {/* Price breakdown */}
                     <div>
                       <div className="text-sm text-muted-foreground">
-                        {formatPrice(pppPrice)} &times; {quantity}{" "}
-                        {quantity === 1 ? "seat" : "seats"}
+                        {formatPrice(regionalPrice)} &times;{" "}
+                        {pluralize(quantity, "seat")}
                       </div>
                       <div className="text-3xl font-bold">
                         {formatPrice(teamTotal)}
@@ -588,15 +594,14 @@ export default function PurchaseConfirmation({
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                      You&apos;ll receive {quantity} unique coupon{" "}
-                      {quantity === 1 ? "link" : "links"} to share with your
-                      team members. Each link grants one person access to this
-                      course.
+                      You&apos;ll receive {pluralize(quantity, "coupon link")}{" "}
+                      to share with your team. Each coupon link gives one person
+                      access to this course.
                     </p>
 
                     <div className="flex items-center gap-3">
                       <Link to={`/courses/${course.slug}`}>
-                        <Button variant="outline">Go Back</Button>
+                        <Button variant="outline">Go back</Button>
                       </Link>
                       <fetcher.Form method="post">
                         <input
@@ -608,7 +613,7 @@ export default function PurchaseConfirmation({
                         <Button size="lg" disabled={isSubmitting}>
                           {isSubmitting
                             ? "Processing..."
-                            : `Buy ${quantity} ${quantity === 1 ? "Seat" : "Seats"}`}
+                            : `Buy ${pluralize(quantity, "seat")}`}
                         </Button>
                       </fetcher.Form>
                     </div>

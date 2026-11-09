@@ -53,7 +53,7 @@ import { renderMarkdown } from "~/lib/markdown.server";
 import { YouTubePlayer } from "~/components/youtube-player";
 import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
-import { COUNTRIES } from "~/lib/ppp";
+import { COUNTRIES } from "~/lib/regional-discount";
 import { parseFormData, parseParams } from "~/lib/validation";
 
 const lessonParamsSchema = z.object({
@@ -117,7 +117,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -330,11 +330,11 @@ function getCommentById(commentId: number) {
 function assertValidBody(body: string) {
   const trimmed = body.trim();
   if (trimmed.length < MIN_COMMENT_LENGTH) {
-    throw new Error("Comment cannot be empty");
+    throw new Error("Comment cannot be empty.");
   }
   if (trimmed.length > MAX_COMMENT_LENGTH) {
     throw new Error(
-      `Comment must be ${MAX_COMMENT_LENGTH} characters or fewer`
+      `Comment must be ${MAX_COMMENT_LENGTH} characters or fewer.`
     );
   }
   return trimmed;
@@ -397,7 +397,7 @@ function getLessonThread(lessonId: number): ThreadComment[] {
     byId.get(row.parentId)?.replies.push(toThreadComment(row));
   }
 
-  // A deleted question with no replies left has nothing worth showing.
+  // A deleted comment with no replies left has nothing worth showing.
   return topLevel.filter((c) => !c.deleted || c.replies.length > 0);
 }
 
@@ -411,19 +411,19 @@ function createComment(
 
   const course = getCourseForLesson(lessonId);
   if (!course) {
-    throw new Error("Lesson not found");
+    throw new Error("Lesson not found.");
   }
 
   if (parentId !== null) {
     const parent = getCommentById(parentId);
     if (!parent) {
-      throw new Error("Parent comment not found");
+      throw new Error("Parent comment not found.");
     }
     if (parent.lessonId !== lessonId) {
-      throw new Error("Parent comment belongs to a different lesson");
+      throw new Error("Parent comment belongs to a different lesson.");
     }
     if (parent.parentId !== null) {
-      throw new Error("Replies can only be one level deep");
+      throw new Error("Replies can only be one level deep.");
     }
   }
 
@@ -439,13 +439,13 @@ function updateComment(commentId: number, userId: number, body: string) {
 
   const existing = getCommentById(commentId);
   if (!existing) {
-    throw new Error("Comment not found");
+    throw new Error("Comment not found.");
   }
   if (existing.deletedAt !== null) {
-    throw new Error("Comment has been deleted");
+    throw new Error("Comment has been deleted.");
   }
   if (existing.userId !== userId) {
-    throw new Error("You can only edit your own comments");
+    throw new Error("You can only edit your own comments.");
   }
 
   return db
@@ -459,10 +459,10 @@ function updateComment(commentId: number, userId: number, body: string) {
 function deleteComment(commentId: number, userId: number, isStaff: boolean) {
   const existing = getCommentById(commentId);
   if (!existing) {
-    throw new Error("Comment not found");
+    throw new Error("Comment not found.");
   }
   if (existing.userId !== userId && !isStaff) {
-    throw new Error("You can only delete your own comments");
+    throw new Error("You can only delete your own comments.");
   }
   if (existing.deletedAt !== null) {
     return existing;
@@ -693,32 +693,32 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const lessonId = Number(params.lessonId);
 
   if (isNaN(lessonId)) {
-    throw data("Invalid lesson ID", { status: 400 });
+    throw data("Invalid lesson ID.", { status: 400 });
   }
 
   const course = getCourseBySlug(slug);
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const courseWithDetails = getCourseWithDetails(course.id);
   if (!courseWithDetails) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const lesson = getLessonById(lessonId);
   if (!lesson) {
-    throw data("Lesson not found", { status: 404 });
+    throw data("Lesson not found.", { status: 404 });
   }
 
   const mod = getModuleById(lesson.moduleId);
   if (!mod) {
-    throw data("Module not found", { status: 404 });
+    throw data("Module not found.", { status: 404 });
   }
 
   // Verify lesson belongs to this course
   if (mod.courseId !== course.id) {
-    throw data("Lesson not found in this course", { status: 404 });
+    throw data("Lesson not found in this course.", { status: 404 });
   }
 
   const access = await getAccess(request, course.id);
@@ -760,13 +760,17 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
   }
 
-  // PPP Access Guard — resolved by getAccess, which treats a blocked user as
+  // Regional discount access guard — resolved by getAccess, which treats a blocked user as
   // having no access to the course's content at all.
-  const { pppBlocked, pppBlockedCountry, pppPurchaseCountry, canViewContent } =
-    access;
+  const {
+    regionalDiscountBlocked,
+    regionalDiscountBlockedCountry,
+    regionalDiscountPurchaseCountry,
+    canViewContent,
+  } = access;
 
   // Comments are confidential to the course: only people who can read the
-  // lesson can read the discussion on it.
+  // lesson can read the comments on it.
   const instructor = getUserById(course.instructorId);
   const comments = canViewContent
     ? await renderThread(getLessonThread(lessonId))
@@ -859,12 +863,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     lastWatchPosition,
     watchProgress,
     lessonProgressMap,
-    pppBlocked,
-    pppBlockedCountry,
-    pppPurchaseCountry,
+    regionalDiscountBlocked,
+    regionalDiscountBlockedCountry,
+    regionalDiscountPurchaseCountry,
     comments,
     canViewContent,
-    canModerate: access.isStaff,
+    isStaff: access.isStaff,
     instructorName: instructor?.name ?? "your instructor",
   };
 }
@@ -874,12 +878,12 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   const course = getCourseBySlug(slug);
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const currentUserId = await getCurrentUserId(request);
   if (!currentUserId) {
-    throw data("You must be logged in", { status: 401 });
+    throw data("You must be logged in.", { status: 401 });
   }
 
   const formData = await request.formData();
@@ -918,7 +922,7 @@ export async function action({ params, request }: Route.ActionArgs) {
         // by posting its id to this route.
         const existing = getCommentById(parsed.data.commentId);
         if (!existing || existing.lessonId !== lessonId) {
-          throw data("Comment not found", { status: 404 });
+          throw data("Comment not found.", { status: 404 });
         }
         updateComment(parsed.data.commentId, currentUserId, parsed.data.body);
         return { ok: true };
@@ -930,7 +934,7 @@ export async function action({ params, request }: Route.ActionArgs) {
       }
       const existing = getCommentById(parsed.data.commentId);
       if (!existing || existing.lessonId !== lessonId) {
-        throw data("Comment not found", { status: 404 });
+        throw data("Comment not found.", { status: 404 });
       }
       deleteComment(parsed.data.commentId, currentUserId, access.isStaff);
       return { ok: true };
@@ -952,7 +956,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   if (intent === "submit-quiz") {
     const quizId = Number(formData.get("quizId"));
     if (isNaN(quizId)) {
-      throw data("Invalid quiz ID", { status: 400 });
+      throw data("Invalid quiz ID.", { status: 400 });
     }
 
     // Collect answers: form fields named "question-{questionId}" with value = optionId
@@ -969,13 +973,13 @@ export async function action({ params, request }: Route.ActionArgs) {
 
     const result = computeResult(currentUserId, quizId, selectedAnswers);
     if (!result) {
-      throw data("Failed to score quiz", { status: 500 });
+      throw data("Failed to score quiz.", { status: 500 });
     }
 
     return { quizResult: result };
   }
 
-  throw data("Invalid action", { status: 400 });
+  throw data("Invalid action.", { status: 400 });
 }
 
 const AUTOPLAY_KEY = "cadence-autoplay";
@@ -1023,12 +1027,12 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
     lastWatchPosition,
     watchProgress,
     lessonProgressMap,
-    pppBlocked,
-    pppBlockedCountry,
-    pppPurchaseCountry,
+    regionalDiscountBlocked,
+    regionalDiscountBlockedCountry,
+    regionalDiscountPurchaseCountry,
     comments,
     canViewContent,
-    canModerate,
+    isStaff,
     instructorName,
   } = loaderData;
   const [autoplay, toggleAutoplay] = useAutoplay();
@@ -1055,36 +1059,36 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
   const quizResult = quizFetcher.data?.quizResult ?? null;
   const isSubmittingQuiz = quizFetcher.state !== "idle";
 
-  if (pppBlocked) {
-    const purchaseCountryName = pppPurchaseCountry
-      ? (COUNTRIES.find((c) => c.code === pppPurchaseCountry)?.name ??
-        pppPurchaseCountry)
+  if (regionalDiscountBlocked) {
+    const purchaseCountryName = regionalDiscountPurchaseCountry
+      ? (COUNTRIES.find((c) => c.code === regionalDiscountPurchaseCountry)
+          ?.name ?? regionalDiscountPurchaseCountry)
       : "your original country";
-    const currentCountryName = pppBlockedCountry
-      ? (COUNTRIES.find((c) => c.code === pppBlockedCountry)?.name ??
-        pppBlockedCountry)
+    const currentCountryName = regionalDiscountBlockedCountry
+      ? (COUNTRIES.find((c) => c.code === regionalDiscountBlockedCountry)
+          ?.name ?? regionalDiscountBlockedCountry)
       : "a different country";
 
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-6">
         <div className="max-w-md text-center">
           <ShieldAlert className="mx-auto mb-4 size-16 text-amber-500" />
-          <h1 className="mb-3 text-2xl font-bold">Access Restricted</h1>
+          <h1 className="mb-3 text-2xl font-bold">Access restricted</h1>
           <p className="mb-4 text-muted-foreground">
-            You purchased this course with a Purchasing Power Parity discount
-            while in <strong>{purchaseCountryName}</strong>, but you're
-            currently accessing from <strong>{currentCountryName}</strong>.
+            You bought this course with a regional discount while in{" "}
+            <strong>{purchaseCountryName}</strong>, but you're currently
+            accessing from <strong>{currentCountryName}</strong>.
           </p>
           <p className="mb-6 text-sm text-muted-foreground">
-            PPP-discounted courses can only be accessed from the country where
-            the purchase was made. This helps keep courses affordable for
+            A course bought with a regional discount can only be opened from the
+            country where it was bought. This helps keep courses affordable for
             students in lower-income regions.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link to={`/courses/${course.slug}`}>
               <Button variant="outline">
                 <MapPin className="mr-2 size-4" />
-                Back to Course
+                Back to course
               </Button>
             </Link>
           </div>
@@ -1146,7 +1150,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
               >
                 <Button variant="outline" size="sm">
                   <Github className="mr-1.5 size-4" />
-                  Open Code
+                  View code on GitHub
                 </Button>
               </a>
             )}
@@ -1167,7 +1171,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
             />
           )}
 
-          {/* Lesson Content */}
+          {/* Lesson content */}
           {contentHtml && (
             <div
               className="prose prose-neutral dark:prose-invert mb-8 max-w-none"
@@ -1233,19 +1237,19 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
                   <input type="hidden" name="intent" value="mark-complete" />
                   <Button disabled={isMarking}>
                     <CheckCircle2 className="mr-2 size-4" />
-                    {isMarking ? "Marking..." : "Mark as Complete"}
+                    {isMarking ? "Marking..." : "Mark as complete"}
                   </Button>
                 </fetcher.Form>
               )}
             </div>
           )}
 
-          {/* Questions & Discussion — confidential to people with access */}
+          {/* Comments — confidential to people with access */}
           {canViewContent && (
             <CommentThread
               comments={comments}
               currentUserId={currentUserId}
-              canModerate={canModerate}
+              isStaff={isStaff}
               canPost
               instructorName={instructorName}
             />
@@ -1471,11 +1475,11 @@ function QuizSection({
     if (quizResult && !retaking) {
       if (quizResult.passed) {
         toast.success(
-          `Quiz passed! Score: ${Math.round(quizResult.score * 100)}%`
+          `Quiz passed! Score: ${Math.round(quizResult.score * 100)}%.`
         );
       } else {
         toast.error(
-          `Quiz not passed. Score: ${Math.round(quizResult.score * 100)}%`
+          `Quiz not passed. Score: ${Math.round(quizResult.score * 100)}%.`
         );
       }
     }
@@ -1573,7 +1577,7 @@ function QuizSection({
                 }}
               >
                 <RotateCcw className="mr-2 size-4" />
-                Retake Quiz
+                Retake quiz
               </Button>
             </div>
           )}
@@ -1659,7 +1663,7 @@ function QuizSection({
 
           <div className="mt-6">
             <Button type="submit" disabled={!allAnswered || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit Quiz"}
+              {isSubmitting ? "Submitting..." : "Submit quiz"}
             </Button>
             {!allAnswered && (
               <p className="mt-2 text-sm text-muted-foreground">
@@ -1676,6 +1680,7 @@ function QuizSection({
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading this lesson.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
@@ -1683,11 +1688,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       message =
         "The lesson you're looking for doesn't exist or may have been removed.";
     } else if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else {
       title = `Error ${error.status}`;
       message = typeof error.data === "string" ? error.data : error.statusText;
@@ -1701,11 +1705,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
           <Link to="/dashboard">
-            <Button>My Dashboard</Button>
+            <Button>Dashboard</Button>
           </Link>
         </div>
       </div>

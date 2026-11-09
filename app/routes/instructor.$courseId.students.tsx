@@ -1,7 +1,6 @@
 import { Link } from "react-router";
 import type { Route } from "./+types/instructor.$courseId.students";
-import { getCurrentUserId } from "~/lib/session";
-import { UserRole } from "~/db/schema";
+import { requireStaff } from "~/lib/access.server";
 import { Card, CardContent } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { AlertTriangle, ArrowLeft, Users, Award } from "lucide-react";
@@ -19,6 +18,7 @@ import {
   LessonProgressStatus,
 } from "~/db/schema";
 import { eq, and, or, sql, desc } from "drizzle-orm";
+import { pluralize } from "~/lib/pluralize";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -138,7 +138,7 @@ function calculateProgress(
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.course?.title ?? "Student Roster";
+  const title = loaderData?.course?.title ?? "Student roster";
   return [
     { title: `Students: ${title} — Cadence` },
     { name: "description", content: `Enrolled students for ${title}` },
@@ -146,25 +146,6 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to view student roster.", {
-      status: 401,
-    });
-  }
-
-  const user = getUserById(currentUserId);
-
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can access this page.", {
-      status: 403,
-    });
-  }
-
   const courseId = parseInt(params.courseId, 10);
   if (isNaN(courseId)) {
     throw data("Invalid course ID.", { status: 400 });
@@ -176,11 +157,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only view students for your own courses.", {
-      status: 403,
-    });
-  }
+  await requireStaff(request, courseId);
 
   // Get all enrolled students
   const enrolledStudents = getCourseEnrolledStudents(courseId);
@@ -299,7 +276,7 @@ export default function InstructorStudentRoster({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <Link to={`/instructor/${course.id}`} className="hover:text-foreground">
@@ -314,11 +291,11 @@ export default function InstructorStudentRoster({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to Course Editor
+        Back to course editor
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Student Roster</h1>
+        <h1 className="text-3xl font-bold">Student roster</h1>
         <p className="mt-1 text-muted-foreground">
           Enrolled students for {course.title}
         </p>
@@ -327,13 +304,13 @@ export default function InstructorStudentRoster({
       <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Users className="size-4" />
-          {students.length} {students.length === 1 ? "student" : "students"}{" "}
+          {pluralize(students.length, "student")}{" "}
           enrolled
         </span>
         {quizCount > 0 && (
           <span className="flex items-center gap-1.5">
             <Award className="size-4" />
-            {quizCount} {quizCount === 1 ? "quiz" : "quizzes"}
+            {pluralize(quizCount, "quiz", "quizzes")}
           </span>
         )}
       </div>
@@ -368,7 +345,7 @@ export default function InstructorStudentRoster({
                     </th>
                     {quizCount > 0 && (
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Quiz Scores
+                        Quiz scores
                       </th>
                     )}
                   </tr>
@@ -411,11 +388,11 @@ export default function InstructorStudentRoster({
                             </span>
                           ) : student.progress > 0 ? (
                             <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                              In Progress
+                              In progress
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                              Not Started
+                              Not started
                             </span>
                           )}
                         </td>
@@ -451,6 +428,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message =
     "An unexpected error occurred while loading the student roster.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
@@ -458,11 +436,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       message =
         "The course you're looking for doesn't exist or may have been removed.";
     } else if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Access denied";
       message =
@@ -482,11 +459,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

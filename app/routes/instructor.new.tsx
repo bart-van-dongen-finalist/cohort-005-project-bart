@@ -53,7 +53,7 @@ function createCourse(
   coverImageUrl: string | null
 ) {
   if (salesCopy.trim().length === 0) {
-    throw new Error("Sales copy cannot be empty");
+    throw new Error("Sales copy cannot be empty.");
   }
 
   return db
@@ -82,7 +82,7 @@ const newCourseSchema = z.object({
 
 export function meta() {
   return [
-    { title: "New Course — Cadence" },
+    { title: "New course — Cadence" },
     { name: "description", content: "Create a new course" },
   ];
 }
@@ -91,7 +91,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
 
   if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to create a course.", {
+    throw data("Log in to continue.", {
       status: 401,
     });
   }
@@ -183,10 +183,10 @@ export default function InstructorNewCourse({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">New Course</span>
+        <span className="text-foreground">New course</span>
       </nav>
 
       <div className="mb-8">
@@ -195,9 +195,9 @@ export default function InstructorNewCourse({
           className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="mr-1 size-4" />
-          Back to My Courses
+          Back to my courses
         </Link>
-        <h1 className="text-3xl font-bold">Create New Course</h1>
+        <h1 className="text-3xl font-bold">Create new course</h1>
         <p className="mt-1 text-muted-foreground">
           Fill in the details below to create a new course. It will be saved as
           a draft.
@@ -206,7 +206,7 @@ export default function InstructorNewCourse({
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <h2 className="text-lg font-semibold">Course Details</h2>
+          <h2 className="text-lg font-semibold">Course details</h2>
         </CardHeader>
         <CardContent>
           <fetcher.Form method="post" className="space-y-6">
@@ -242,9 +242,9 @@ export default function InstructorNewCourse({
               )}
             </div>
 
-            {/* Sales Copy */}
+            {/* Sales copy */}
             <div className="space-y-2">
-              <Label htmlFor="salesCopy">Sales Copy</Label>
+              <Label htmlFor="salesCopy">Sales copy</Label>
               <Textarea
                 id="salesCopy"
                 name="salesCopy"
@@ -288,10 +288,10 @@ export default function InstructorNewCourse({
               )}
             </div>
 
-            {/* Cover Image URL */}
+            {/* Cover image URL */}
             <div className="space-y-2">
               <Label htmlFor="coverImageUrl">
-                Cover Image URL{" "}
+                Cover image URL{" "}
                 <span className="font-normal text-muted-foreground">
                   (optional)
                 </span>
@@ -307,7 +307,7 @@ export default function InstructorNewCourse({
             {/* Submit */}
             <div className="flex items-center gap-3">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Creating..." : "Create Course"}
+                {isSubmitting ? "Creating..." : "Create course"}
               </Button>
               <Link to="/instructor">
                 <Button type="button" variant="outline">
@@ -325,14 +325,14 @@ export default function InstructorNewCourse({
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Access denied";
       message =
@@ -352,11 +352,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

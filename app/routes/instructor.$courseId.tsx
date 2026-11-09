@@ -8,8 +8,8 @@ import {
   type DropResult,
 } from "@hello-pangea/dnd";
 import type { Route } from "./+types/instructor.$courseId";
-import { getCurrentUserId } from "~/lib/session";
-import { CourseStatus, UserRole } from "~/db/schema";
+import { requireStaff } from "~/lib/access.server";
+import { CourseStatus } from "~/db/schema";
 import { db } from "~/db";
 import {
   courses,
@@ -58,6 +58,7 @@ import {
 import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
 import { parseFormData, parseParams } from "~/lib/validation";
+import { pluralize } from "~/lib/pluralize";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -80,7 +81,7 @@ function getCourseWithDetails(id: number) {
       status: courses.status,
       coverImageUrl: courses.coverImageUrl,
       price: courses.price,
-      pppEnabled: courses.pppEnabled,
+      regionalDiscountEnabled: courses.regionalDiscountEnabled,
       createdAt: courses.createdAt,
       updatedAt: courses.updatedAt,
       instructorName: users.name,
@@ -162,7 +163,7 @@ function updateCourseStatus(id: number, status: CourseStatus) {
 
 function updateCourseSalesCopy(id: number, salesCopy: string) {
   if (salesCopy.trim().length === 0) {
-    throw new Error("Sales copy cannot be empty");
+    throw new Error("Sales copy cannot be empty.");
   }
 
   return db
@@ -182,10 +183,13 @@ function updateCoursePrice(id: number, price: number) {
     .get();
 }
 
-function updateCoursePppEnabled(id: number, pppEnabled: boolean) {
+function updateCourseRegionalDiscountEnabled(
+  id: number,
+  regionalDiscountEnabled: boolean
+) {
   return db
     .update(courses)
-    .set({ pppEnabled, updatedAt: new Date().toISOString() })
+    .set({ regionalDiscountEnabled, updatedAt: new Date().toISOString() })
     .where(eq(courses.id, id))
     .returning()
     .get();
@@ -493,7 +497,10 @@ const courseEditorActionSchema = z.discriminatedUnion("intent", [
     status: z.nativeEnum(CourseStatus),
   }),
   z.object({ intent: z.literal("update-price"), price: z.string() }),
-  z.object({ intent: z.literal("update-ppp-enabled"), pppEnabled: z.string() }),
+  z.object({
+    intent: z.literal("update-regional-discount-enabled"),
+    regionalDiscountEnabled: z.string(),
+  }),
   z.object({
     intent: z.literal("add-module"),
     title: z.string().trim().min(1, "Module title cannot be empty."),
@@ -543,7 +550,7 @@ const courseEditorActionSchema = z.discriminatedUnion("intent", [
 ]);
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.course?.title ?? "Edit Course";
+  const title = loaderData?.course?.title ?? "Edit course";
   return [
     { title: `Edit: ${title} — Cadence` },
     { name: "description", content: `Edit course: ${title}` },
@@ -551,25 +558,6 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to manage courses.", {
-      status: 401,
-    });
-  }
-
-  const user = getUserById(currentUserId);
-
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can access this page.", {
-      status: 403,
-    });
-  }
-
   const courseId = parseInt(params.courseId, 10);
   if (isNaN(courseId)) {
     throw data("Invalid course ID.", { status: 400 });
@@ -581,9 +569,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only edit your own courses.", { status: 403 });
-  }
+  await requireStaff(request, courseId);
 
   const lessonCount = getLessonCountForCourse(courseId);
   const enrollmentCount = getEnrollmentCountForCourse(courseId);
@@ -643,22 +629,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("You must be logged in.", { status: 401 });
-  }
-
-  const user = getUserById(currentUserId);
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can edit courses.", {
-      status: 403,
-    });
-  }
-
   const { courseId } = parseParams(params, courseEditorParamsSchema);
 
   const course = getCourseById(courseId);
@@ -666,9 +636,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only edit your own courses.", { status: 403 });
-  }
+  await requireStaff(request, courseId);
 
   const formData = await request.formData();
   const parsed = parseFormData(formData, courseEditorActionSchema);
@@ -713,10 +681,11 @@ export async function action({ params, request }: Route.ActionArgs) {
     return { success: true, field: "price" };
   }
 
-  if (intent === "update-ppp-enabled") {
-    const pppEnabled = parsed.data.pppEnabled === "true";
-    updateCoursePppEnabled(courseId, pppEnabled);
-    return { success: true, field: "ppp-enabled" };
+  if (intent === "update-regional-discount-enabled") {
+    const regionalDiscountEnabled =
+      parsed.data.regionalDiscountEnabled === "true";
+    updateCourseRegionalDiscountEnabled(courseId, regionalDiscountEnabled);
+    return { success: true, field: "regional-discount-enabled" };
   }
 
   if (intent === "add-module") {
@@ -1218,7 +1187,7 @@ function AddModuleForm() {
         className="mt-4"
       >
         <Plus className="mr-1.5 size-4" />
-        Add Module
+        Add module
       </Button>
     );
   }
@@ -1437,7 +1406,7 @@ function AddLessonForm({ moduleId }: { moduleId: number }) {
         className="mt-2 text-muted-foreground"
       >
         <Plus className="mr-1 size-3.5" />
-        Add Lesson
+        Add lesson
       </Button>
     );
   }
@@ -1499,7 +1468,7 @@ export default function InstructorCourseEditor({
   const lessonReorderFetcher = useFetcher();
   const salesCopyFetcher = useFetcher();
   const priceFetcher = useFetcher();
-  const pppFetcher = useFetcher();
+  const regionalDiscountFetcher = useFetcher();
 
   const [salesCopy, setSalesCopy] = useState(course.salesCopy);
   const salesCopyHasChanges = salesCopy !== course.salesCopy;
@@ -1557,13 +1526,19 @@ export default function InstructorCourseEditor({
   }, [priceFetcher.state, priceFetcher.data]);
 
   useEffect(() => {
-    if (pppFetcher.state === "idle" && pppFetcher.data?.success) {
-      toast.success("PPP setting updated.");
+    if (
+      regionalDiscountFetcher.state === "idle" &&
+      regionalDiscountFetcher.data?.success
+    ) {
+      toast.success("Regional discount setting updated.");
     }
-    if (pppFetcher.state === "idle" && pppFetcher.data?.error) {
-      toast.error(pppFetcher.data.error);
+    if (
+      regionalDiscountFetcher.state === "idle" &&
+      regionalDiscountFetcher.data?.error
+    ) {
+      toast.error(regionalDiscountFetcher.data.error);
     }
-  }, [pppFetcher.state, pppFetcher.data]);
+  }, [regionalDiscountFetcher.state, regionalDiscountFetcher.data]);
 
   function handleSalesCopySave() {
     salesCopyFetcher.submit(
@@ -1655,7 +1630,7 @@ export default function InstructorCourseEditor({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">{course.title}</span>
@@ -1666,7 +1641,7 @@ export default function InstructorCourseEditor({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to My Courses
+        Back to my courses
       </Link>
 
       {/* Course Header with inline editing */}
@@ -1683,11 +1658,11 @@ export default function InstructorCourseEditor({
         <div className="mt-4 flex flex-wrap items-center gap-4 px-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <BookOpen className="size-4" />
-            {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
+            {pluralize(lessonCount, "lesson")}
           </span>
           <span className="flex items-center gap-1.5">
             <Users className="size-4" />
-            {enrollmentCount} {enrollmentCount === 1 ? "student" : "students"}
+            {pluralize(enrollmentCount, "student")}
           </span>
           <span className="text-xs text-muted-foreground">
             Slug: /courses/{course.slug}
@@ -1708,7 +1683,7 @@ export default function InstructorCourseEditor({
           </TabsTrigger>
           <TabsTrigger value="sales-copy">
             <FileText className="size-4" />
-            Sales Copy
+            Sales copy
           </TabsTrigger>
           <TabsTrigger value="students">
             <Users className="size-4" />
@@ -1904,7 +1879,7 @@ export default function InstructorCourseEditor({
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold">Course Status</h2>
+                <h2 className="text-lg font-semibold">Course status</h2>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
@@ -1971,20 +1946,26 @@ export default function InstructorCourseEditor({
 
                   <div
                     className="flex items-center gap-2"
-                    title="Purchasing Power Parity: applies location-based discounts for students in lower-income countries"
+                    title="Regional discount: lowers the price for students in lower-income countries"
                   >
                     <Globe className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">PPP:</span>
+                    <span className="text-sm font-medium">
+                      Regional discount:
+                    </span>
                     <button
                       type="button"
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        course.pppEnabled ? "bg-primary" : "bg-muted"
+                        course.regionalDiscountEnabled
+                          ? "bg-primary"
+                          : "bg-muted"
                       }`}
                       onClick={() => {
-                        pppFetcher.submit(
+                        regionalDiscountFetcher.submit(
                           {
-                            intent: "update-ppp-enabled",
-                            pppEnabled: String(!course.pppEnabled),
+                            intent: "update-regional-discount-enabled",
+                            regionalDiscountEnabled: String(
+                              !course.regionalDiscountEnabled
+                            ),
                           },
                           { method: "post" }
                         );
@@ -1992,12 +1973,14 @@ export default function InstructorCourseEditor({
                     >
                       <span
                         className={`inline-block size-4 transform rounded-full bg-white transition-transform ${
-                          course.pppEnabled ? "translate-x-6" : "translate-x-1"
+                          course.regionalDiscountEnabled
+                            ? "translate-x-6"
+                            : "translate-x-1"
                         }`}
                       />
                     </button>
                     <span className="text-xs text-muted-foreground">
-                      {course.pppEnabled ? "On" : "Off"}
+                      {course.regionalDiscountEnabled ? "On" : "Off"}
                     </span>
                   </div>
                 </div>
@@ -2013,7 +1996,7 @@ export default function InstructorCourseEditor({
                   <Link to={`/courses/${course.slug}`}>
                     <Button variant="outline" size="sm">
                       <Eye className="mr-1.5 size-4" />
-                      View Public Page
+                      View course
                     </Button>
                   </Link>
                 </div>
@@ -2022,11 +2005,11 @@ export default function InstructorCourseEditor({
           </div>
         </TabsContent>
 
-        {/* Sales Copy Tab */}
+        {/* Sales copy Tab */}
         <TabsContent value="sales-copy" className="mt-6">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Sales Copy</h2>
+              <h2 className="text-lg font-semibold">Sales copy</h2>
               <p className="text-sm text-muted-foreground">
                 Write the course sales copy in Markdown. This is shown on the
                 public course page. Press Ctrl+S to format and save.
@@ -2050,7 +2033,7 @@ export default function InstructorCourseEditor({
                   <Save className="mr-1.5 size-4" />
                   {salesCopyFetcher.state !== "idle"
                     ? "Saving..."
-                    : "Save Sales Copy"}
+                    : "Save sales copy"}
                 </Button>
                 {salesCopyIsEmpty ? (
                   <span className="text-sm text-destructive">
@@ -2073,13 +2056,13 @@ export default function InstructorCourseEditor({
           <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Users className="size-4" />
-              {students.length} {students.length === 1 ? "student" : "students"}{" "}
+              {pluralize(students.length, "student")}{" "}
               enrolled
             </span>
             {quizCount > 0 && (
               <span className="flex items-center gap-1.5">
                 <Award className="size-4" />
-                {quizCount} {quizCount === 1 ? "quiz" : "quizzes"}
+                {pluralize(quizCount, "quiz", "quizzes")}
               </span>
             )}
           </div>
@@ -2114,7 +2097,7 @@ export default function InstructorCourseEditor({
                         </th>
                         {quizCount > 0 && (
                           <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                            Quiz Scores
+                            Quiz scores
                           </th>
                         )}
                       </tr>
@@ -2167,11 +2150,11 @@ export default function InstructorCourseEditor({
                                 </span>
                               ) : student.progress > 0 ? (
                                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                  In Progress
+                                  In progress
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                                  Not Started
+                                  Not started
                                 </span>
                               )}
                             </td>
@@ -2220,6 +2203,7 @@ export default function InstructorCourseEditor({
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading the course editor.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
@@ -2227,11 +2211,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       message =
         "The course you're looking for doesn't exist or may have been removed.";
     } else if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Access denied";
       message =
@@ -2251,11 +2234,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

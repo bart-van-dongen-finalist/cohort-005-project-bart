@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useFetcher, useBlocker } from "react-router";
 import { toast } from "sonner";
 import type { Route } from "./+types/instructor.$courseId.lessons.$lessonId";
-import { getCurrentUserId } from "~/lib/session";
+import { requireStaff } from "~/lib/access.server";
 import {
-  UserRole,
-  users,
   courses,
   modules,
   lessons,
@@ -42,10 +40,6 @@ const updateLessonSchema = z.object({
   durationMinutes: z.string().optional(),
   githubRepoUrl: z.string().trim().optional(),
 });
-
-function getUserById(id: number) {
-  return db.select().from(users).where(eq(users.id, id)).get();
-}
 
 function getCourseById(id: number) {
   return db.select().from(courses).where(eq(courses.id, id)).get();
@@ -91,7 +85,7 @@ function updateLesson(
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.lesson?.title ?? "Edit Lesson";
+  const title = loaderData?.lesson?.title ?? "Edit lesson";
   return [
     { title: `Edit: ${title} — Cadence` },
     { name: "description", content: `Edit lesson: ${title}` },
@@ -99,25 +93,6 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("Select a user from the DevUI panel to manage lessons.", {
-      status: 401,
-    });
-  }
-
-  const user = getUserById(currentUserId);
-
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can access this page.", {
-      status: 403,
-    });
-  }
-
   const courseId = parseInt(params.courseId, 10);
   if (isNaN(courseId)) {
     throw data("Invalid course ID.", { status: 400 });
@@ -129,9 +104,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only edit your own courses.", { status: 403 });
-  }
+  await requireStaff(request, courseId);
 
   const lessonId = parseInt(params.lessonId, 10);
   if (isNaN(lessonId)) {
@@ -154,22 +127,6 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 }
 
 export async function action({ params, request }: Route.ActionArgs) {
-  const currentUserId = await getCurrentUserId(request);
-
-  if (!currentUserId) {
-    throw data("You must be logged in.", { status: 401 });
-  }
-
-  const user = getUserById(currentUserId);
-  if (
-    !user ||
-    (user.role !== UserRole.Instructor && user.role !== UserRole.Admin)
-  ) {
-    throw data("Only instructors and admins can edit lessons.", {
-      status: 403,
-    });
-  }
-
   const { courseId, lessonId } = parseParams(
     params,
     instructorLessonParamsSchema
@@ -180,9 +137,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw data("Course not found.", { status: 404 });
   }
 
-  if (course.instructorId !== currentUserId && user.role !== UserRole.Admin) {
-    throw data("You can only edit your own courses.", { status: 403 });
-  }
+  await requireStaff(request, courseId);
 
   const lesson = getLessonById(lessonId);
   if (!lesson) {
@@ -298,7 +253,7 @@ export default function InstructorLessonEditor({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="mx-4 w-full max-w-md">
             <CardHeader>
-              <h2 className="text-lg font-semibold">Unsaved Changes</h2>
+              <h2 className="text-lg font-semibold">Unsaved changes</h2>
               <p className="text-sm text-muted-foreground">
                 You have unsaved changes that will be lost if you leave this
                 page.
@@ -306,10 +261,10 @@ export default function InstructorLessonEditor({
             </CardHeader>
             <CardContent className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => blocker.reset()}>
-                Stay on Page
+                Stay on page
               </Button>
               <Button variant="destructive" onClick={() => blocker.proceed()}>
-                Leave Page
+                Leave page
               </Button>
             </CardContent>
           </Card>
@@ -319,7 +274,7 @@ export default function InstructorLessonEditor({
       {/* Breadcrumb */}
       <nav className="mb-6 text-sm text-muted-foreground">
         <Link to="/instructor" className="hover:text-foreground">
-          My Courses
+          My courses
         </Link>
         <span className="mx-2">/</span>
         <Link to={`/instructor/${course.id}`} className="hover:text-foreground">
@@ -334,7 +289,7 @@ export default function InstructorLessonEditor({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to Course Editor
+        Back to course editor
       </Link>
 
       <div className="mb-6">
@@ -343,7 +298,7 @@ export default function InstructorLessonEditor({
           <Link to={`/courses/${course.slug}/lessons/${lesson.id}`}>
             <Button variant="outline" size="sm">
               <ExternalLink className="mr-1.5 size-4" />
-              View Lesson
+              View lesson
             </Button>
           </Link>
         </div>
@@ -356,7 +311,7 @@ export default function InstructorLessonEditor({
         {/* Content */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Lesson Content</h2>
+            <h2 className="text-lg font-semibold">Lesson content</h2>
             <p className="text-sm text-muted-foreground">
               Write lesson content in Markdown. Press Ctrl+S to format and save.
             </p>
@@ -419,7 +374,7 @@ export default function InstructorLessonEditor({
         {/* GitHub Repo */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">GitHub Repository</h2>
+            <h2 className="text-lg font-semibold">GitHub repository</h2>
             <p className="text-sm text-muted-foreground">
               Link to a GitHub repository for this lesson's code.
             </p>
@@ -452,7 +407,7 @@ export default function InstructorLessonEditor({
             <Link to={`/instructor/${course.id}/lessons/${lesson.id}/quiz`}>
               <Button variant="outline">
                 <ClipboardList className="mr-1.5 size-4" />
-                {quiz ? "Edit Quiz" : "Create Quiz"}
+                {quiz ? "Edit quiz" : "Create quiz"}
               </Button>
             </Link>
           </CardContent>
@@ -465,7 +420,7 @@ export default function InstructorLessonEditor({
             disabled={!hasChanges || fetcher.state !== "idle"}
           >
             <Save className="mr-1.5 size-4" />
-            {fetcher.state !== "idle" ? "Saving..." : "Save Changes"}
+            {fetcher.state !== "idle" ? "Saving..." : "Save changes"}
           </Button>
           {hasChanges && (
             <span className="text-sm text-muted-foreground">
@@ -481,6 +436,7 @@ export default function InstructorLessonEditor({
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred while loading the lesson editor.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
@@ -488,11 +444,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       message =
         "The lesson you're looking for doesn't exist or may have been removed.";
     } else if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
         typeof error.data === "string"
           ? error.data
-          : "Please select a user from the DevUI panel.";
+          : "Log in to continue.";
     } else if (error.status === 403) {
       title = "Access denied";
       message =
@@ -512,11 +469,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/instructor">
-            <Button variant="outline">My Courses</Button>
+            <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

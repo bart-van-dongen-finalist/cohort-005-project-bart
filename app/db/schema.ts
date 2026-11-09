@@ -38,7 +38,8 @@ export enum RefundStatus {
 }
 
 export enum TeamMemberRole {
-  Admin = "admin",
+  // Stored as "admin" from before the Team owner name; no migration.
+  Owner = "admin",
   Member = "member",
 }
 
@@ -79,7 +80,7 @@ export const courses = sqliteTable("courses", {
   status: text("status").notNull().$type<CourseStatus>(),
   coverImageUrl: text("cover_image_url"),
   price: integer("price").notNull().default(0),
-  pppEnabled: integer("ppp_enabled", { mode: "boolean" })
+  regionalDiscountEnabled: integer("ppp_enabled", { mode: "boolean" })
     .notNull()
     .default(true),
   createdAt: text("created_at")
@@ -240,7 +241,7 @@ export const refunds = sqliteTable(
       .notNull()
       .$type<RefundStatus>()
       .default(RefundStatus.Requested),
-    // The learner's own words, in the box on the course page.
+    // The Student's own words, in the box on the course page.
     reason: text("reason").notNull(),
     // Null until someone approves — a declined request refunds nothing.
     amountRefunded: integer("amount_refunded"),

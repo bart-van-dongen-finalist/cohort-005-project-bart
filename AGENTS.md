@@ -5,12 +5,16 @@ Do these checks in this order before you report a change to `app/` as complete:
 1. `npm run typecheck`
 2. `npm run test`
 
+## Domain language
+
+Before you name a domain concept or write user-facing text, read `GLOSSARY.md` for the canonical word and the "Write user-facing text" section of `CODING_STANDARDS.md` for the style rules.
+
 ## When something breaks
 
-| Symptom                                         | Cause                                                                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 401 "Select a user from the DevUI panel"        | No user in the session — switch users and country in the floating panel (`app/components/dev-ui.tsx`). |
-| `tsc` reports every `./+types/*` import missing | Typegen has not run. Use `npm run typecheck`, which runs `react-router typegen` first.                 |
+| Symptom                                         | Cause                                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 401 "Log in required" / "Log in to continue."   | No user in the session — switch users and country in the floating DevUI panel (`app/components/dev-ui.tsx`). |
+| `tsc` reports every `./+types/*` import missing | Typegen has not run. Use `npm run typecheck`, which runs `react-router typegen` first.                       |
 
 ## Agent skills
 

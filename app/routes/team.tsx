@@ -17,14 +17,14 @@ import {
 } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
-function getTeamForAdmin(userId: number) {
+function getTeamForOwner(userId: number) {
   const membership = db
     .select()
     .from(teamMembers)
     .where(
       and(
         eq(teamMembers.userId, userId),
-        eq(teamMembers.role, TeamMemberRole.Admin)
+        eq(teamMembers.role, TeamMemberRole.Owner)
       )
     )
     .get();
@@ -51,7 +51,7 @@ interface CourseStats {
   courseTitle: string;
   courseSlug: string;
   totalSeats: number;
-  claimedSeats: number;
+  redeemedSeats: number;
 }
 
 interface CouponRow {
@@ -74,13 +74,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   const currentUserId = await getCurrentUserId(request);
 
   if (!currentUserId) {
-    throw data("Select a user from the DevUI panel.", { status: 401 });
+    throw data("Log in to continue.", { status: 401 });
   }
 
-  const team = getTeamForAdmin(currentUserId);
+  const team = getTeamForOwner(currentUserId);
 
   if (!team) {
-    throw data("You don't have a team. Purchase team seats to create one.", {
+    throw data("You don't have a team. Buy team seats to create one.", {
       status: 403,
     });
   }
@@ -95,7 +95,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       courseTitle: string;
       courseSlug: string;
       total: number;
-      claimed: number;
+      redeemed: number;
     }
   >();
 
@@ -104,16 +104,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       const course = getCourseById(coupon.courseId);
       courseMap.set(coupon.courseId, {
         courseId: coupon.courseId,
-        courseTitle: course?.title ?? "Unknown Course",
+        courseTitle: course?.title ?? "Unknown course",
         courseSlug: course?.slug ?? "",
         total: 0,
-        claimed: 0,
+        redeemed: 0,
       });
     }
     const entry = courseMap.get(coupon.courseId)!;
     entry.total++;
     if (coupon.redeemedByUserId !== null) {
-      entry.claimed++;
+      entry.redeemed++;
     }
   }
 
@@ -123,7 +123,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       courseTitle: e.courseTitle,
       courseSlug: e.courseSlug,
       totalSeats: e.total,
-      claimedSeats: e.claimed,
+      redeemedSeats: e.redeemed,
     })
   );
 
@@ -139,7 +139,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       id: coupon.id,
       code: coupon.code,
       courseId: coupon.courseId,
-      courseTitle: course?.title ?? "Unknown Course",
+      courseTitle: course?.title ?? "Unknown course",
       redeemedByEmail,
       createdAt: coupon.createdAt,
     };
@@ -163,7 +163,7 @@ function CopyButton({ code }: { code: string }) {
     <button
       onClick={handleCopy}
       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-      title="Copy redemption link"
+      title="Copy coupon link"
     >
       {copied ? (
         <>
@@ -173,7 +173,7 @@ function CopyButton({ code }: { code: string }) {
       ) : (
         <>
           <Copy className="size-3" />
-          Copy link
+          Copy coupon link
         </>
       )}
     </button>
@@ -200,9 +200,9 @@ export default function Team({ loaderData }: Route.ComponentProps) {
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Team Management</h1>
+        <h1 className="text-3xl font-bold">Team management</h1>
         <p className="mt-1 text-muted-foreground">
-          Manage your team&apos;s course seats and coupon codes
+          Manage your team&apos;s course seats and coupons
         </p>
       </div>
 
@@ -221,14 +221,14 @@ export default function Team({ loaderData }: Route.ComponentProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-2xl font-bold">
-                      {stat.claimedSeats}
+                      {stat.redeemedSeats}
                       <span className="text-base font-normal text-muted-foreground">
                         {" "}
                         / {stat.totalSeats}
                       </span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      seats claimed
+                      Seats redeemed
                     </p>
                   </div>
                   <Link to={`/courses/${stat.courseSlug}/purchase?mode=team`}>
@@ -274,7 +274,7 @@ export default function Team({ loaderData }: Route.ComponentProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">Code</th>
+                  <th className="px-4 py-3 text-left font-medium">Coupon</th>
                   <th className="px-4 py-3 text-left font-medium">Course</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
                   <th className="px-4 py-3 text-left font-medium">Action</th>
@@ -294,11 +294,11 @@ export default function Team({ loaderData }: Route.ComponentProps) {
                     <td className="px-4 py-3">
                       {coupon.redeemedByEmail ? (
                         <span className="text-muted-foreground">
-                          Claimed by {coupon.redeemedByEmail}
+                          Redeemed by {coupon.redeemedByEmail}
                         </span>
                       ) : (
                         <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                          Unclaimed
+                          Unredeemed
                         </span>
                       )}
                     </td>
@@ -321,14 +321,14 @@ export default function Team({ loaderData }: Route.ComponentProps) {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
   let message = "An unexpected error occurred.";
+  let showLogIn = false;
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
-      title = "Sign in required";
+      title = "Log in required";
+      showLogIn = true;
       message =
-        typeof error.data === "string"
-          ? error.data
-          : "Please select a user from the DevUI panel.";
+        typeof error.data === "string" ? error.data : "Log in to continue.";
     } else if (error.status === 403) {
       title = "No team found";
       message =
@@ -348,11 +348,16 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <h1 className="mb-2 text-2xl font-bold">{title}</h1>
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
+          {showLogIn && (
+            <Link to="/login">
+              <Button>Log in</Button>
+            </Link>
+          )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
         </div>
       </div>
