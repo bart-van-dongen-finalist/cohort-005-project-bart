@@ -45,11 +45,11 @@ function redeemCoupon(
 ): RedeemResult {
   const coupon = getCouponByCode(code);
   if (!coupon) {
-    return { ok: false, error: "Coupon not found" };
+    return { ok: false, error: "Coupon not found." };
   }
 
   if (coupon.redeemedByUserId !== null) {
-    return { ok: false, error: "Coupon has already been redeemed" };
+    return { ok: false, error: "Coupon has already been redeemed." };
   }
 
   const existingEnrollment = db
@@ -64,7 +64,7 @@ function redeemCoupon(
     .get();
 
   if (existingEnrollment) {
-    return { ok: false, error: "You are already enrolled in this course" };
+    return { ok: false, error: "You are already enrolled in this course." };
   }
 
   const purchase = db
@@ -107,7 +107,7 @@ const redeemActionSchema = z.object({
 });
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.course?.title ?? "Redeem Coupon";
+  const title = loaderData?.course?.title ?? "Redeem coupon";
   return [
     { title: `Redeem: ${title} — Cadence` },
     { name: "description", content: `Redeem your coupon for ${title}` },
@@ -212,7 +212,7 @@ export default function Redeem({
 
   return (
     <div className="mx-auto max-w-2xl p-6 lg:p-8">
-      <h1 className="mb-2 text-2xl font-bold">Redeem Coupon</h1>
+      <h1 className="mb-2 text-2xl font-bold">Redeem coupon</h1>
       <p className="mb-8 text-muted-foreground">
         You&apos;ve been invited to enroll in a course.
       </p>
@@ -256,7 +256,7 @@ export default function Redeem({
               </p>
               <Link to={`/courses/${course.slug}`}>
                 <Button className="mt-4" size="lg">
-                  Go to Course
+                  View course
                 </Button>
               </Link>
             </div>
@@ -290,7 +290,7 @@ export default function Redeem({
               to={`/courses/${course.slug}`}
               className="text-sm text-muted-foreground hover:text-foreground"
             >
-              View course details
+              View course
             </Link>
           </div>
         </CardContent>

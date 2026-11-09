@@ -204,7 +204,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
               type="submit"
               disabled={fetcher.state !== "idle"}
             >
-              {fetcher.state !== "idle" ? "Saving..." : "Save Changes"}
+              {fetcher.state !== "idle" ? "Saving..." : "Save changes"}
             </Button>
           </fetcher.Form>
         </CardContent>
@@ -283,7 +283,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

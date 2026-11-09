@@ -18,6 +18,7 @@ import {
   LessonProgressStatus,
 } from "~/db/schema";
 import { eq, and, or, sql, desc } from "drizzle-orm";
+import { pluralize } from "~/lib/pluralize";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -137,7 +138,7 @@ function calculateProgress(
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.course?.title ?? "Student Roster";
+  const title = loaderData?.course?.title ?? "Student roster";
   return [
     { title: `Students: ${title} — Cadence` },
     { name: "description", content: `Enrolled students for ${title}` },
@@ -290,11 +291,11 @@ export default function InstructorStudentRoster({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to Course Editor
+        Back to course editor
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Student Roster</h1>
+        <h1 className="text-3xl font-bold">Student roster</h1>
         <p className="mt-1 text-muted-foreground">
           Enrolled students for {course.title}
         </p>
@@ -303,13 +304,13 @@ export default function InstructorStudentRoster({
       <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <Users className="size-4" />
-          {students.length} {students.length === 1 ? "student" : "students"}{" "}
+          {pluralize(students.length, "student")}{" "}
           enrolled
         </span>
         {quizCount > 0 && (
           <span className="flex items-center gap-1.5">
             <Award className="size-4" />
-            {quizCount} {quizCount === 1 ? "quiz" : "quizzes"}
+            {pluralize(quizCount, "quiz", "quizzes")}
           </span>
         )}
       </div>
@@ -344,7 +345,7 @@ export default function InstructorStudentRoster({
                     </th>
                     {quizCount > 0 && (
                       <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                        Quiz Scores
+                        Quiz scores
                       </th>
                     )}
                   </tr>
@@ -387,11 +388,11 @@ export default function InstructorStudentRoster({
                             </span>
                           ) : student.progress > 0 ? (
                             <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                              In Progress
+                              In progress
                             </span>
                           ) : (
                             <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                              Not Started
+                              Not started
                             </span>
                           )}
                         </td>
@@ -467,7 +468,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

@@ -124,29 +124,29 @@ function createComment(
 ) {
   const trimmed = body.trim();
   if (trimmed.length < MIN_COMMENT_LENGTH) {
-    throw new Error("Comment cannot be empty");
+    throw new Error("Comment cannot be empty.");
   }
   if (trimmed.length > MAX_COMMENT_LENGTH) {
     throw new Error(
-      `Comment must be ${MAX_COMMENT_LENGTH} characters or fewer`
+      `Comment must be ${MAX_COMMENT_LENGTH} characters or fewer.`
     );
   }
 
   const course = getCourseForLesson(lessonId);
   if (!course) {
-    throw new Error("Lesson not found");
+    throw new Error("Lesson not found.");
   }
 
   if (parentId !== null) {
     const parent = getCommentById(parentId);
     if (!parent) {
-      throw new Error("Parent comment not found");
+      throw new Error("Parent comment not found.");
     }
     if (parent.lessonId !== lessonId) {
-      throw new Error("Parent comment belongs to a different lesson");
+      throw new Error("Parent comment belongs to a different lesson.");
     }
     if (parent.parentId !== null) {
-      throw new Error("Replies can only be one level deep");
+      throw new Error("Replies can only be one level deep.");
     }
   }
 
@@ -201,7 +201,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const course = getCourseForLesson(comment.lessonId);
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   // Replying as the course's voice — so it must be Staff on this course.
@@ -260,7 +260,7 @@ function UnansweredCommentCard({ comment }: { comment: UnansweredComment }) {
             className="inline-flex items-center gap-1 hover:text-foreground"
           >
             <ExternalLink className="size-3.5" />
-            Open lesson
+            View lesson
           </Link>
 
           <span

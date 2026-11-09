@@ -163,7 +163,7 @@ export default function Welcome({ loaderData }: Route.ComponentProps) {
                   className="w-full max-w-sm"
                 >
                   <MessageCircle className="mr-2 size-5" />
-                  Join the Discord Community
+                  Join the Discord community
                 </Button>
               </a>
             )}
@@ -172,13 +172,13 @@ export default function Welcome({ loaderData }: Route.ComponentProps) {
               <Link to={`/courses/${course.slug}/lessons/${firstLessonId}`}>
                 <Button size="lg" className="w-full max-w-sm">
                   <PlayCircle className="mr-2 size-5" />
-                  Start Learning
+                  Start learning
                 </Button>
               </Link>
             ) : (
               <Link to={`/courses/${course.slug}`}>
                 <Button size="lg" className="w-full max-w-sm">
-                  Go to Course
+                  View course
                 </Button>
               </Link>
             )}

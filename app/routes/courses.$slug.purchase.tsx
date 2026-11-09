@@ -156,7 +156,7 @@ function enrollUser(
   if (!skipValidation) {
     const existing = findEnrollment(userId, courseId);
     if (existing) {
-      throw new Error("User is already enrolled in this course");
+      throw new Error("User is already enrolled in this course.");
     }
 
     const course = db
@@ -165,7 +165,7 @@ function enrollUser(
       .where(eq(courses.id, courseId))
       .get();
     if (!course) {
-      throw new Error("Course not found");
+      throw new Error("Course not found.");
     }
   }
 
@@ -275,7 +275,7 @@ const purchaseActionSchema = z.discriminatedUnion("intent", [
 export function meta({ loaderData }: Route.MetaArgs) {
   const title = loaderData?.course?.title ?? "Purchase";
   return [
-    { title: `Confirm Purchase: ${title} — Cadence` },
+    { title: `Confirm purchase: ${title} — Cadence` },
     { name: "description", content: `Confirm your purchase of ${title}` },
   ];
 }
@@ -424,7 +424,7 @@ export default function PurchaseConfirmation({
         Back to course
       </Link>
 
-      <h1 className="mb-2 text-2xl font-bold">Confirm Your Purchase</h1>
+      <h1 className="mb-2 text-2xl font-bold">Confirm your purchase</h1>
       <p className="mb-8 text-muted-foreground">
         Review the details below before buying.
       </p>
@@ -463,7 +463,7 @@ export default function PurchaseConfirmation({
           <div className="mt-6 flex flex-wrap gap-6 border-t pt-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-2">
               <BookOpen className="size-4" />
-              {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
+              {pluralize(lessonCount, "lesson")}
             </span>
             <span className="flex items-center gap-2">
               <Clock className="size-4" />
@@ -471,7 +471,7 @@ export default function PurchaseConfirmation({
             </span>
             <span className="flex items-center gap-2">
               <Users className="size-4" />
-              {enrollmentCount} {enrollmentCount === 1 ? "student" : "students"}{" "}
+              {pluralize(enrollmentCount, "student")}{" "}
               enrolled
             </span>
           </div>
@@ -533,7 +533,7 @@ export default function PurchaseConfirmation({
                       </div>
                       <div className="flex items-center gap-3">
                         <Link to={`/courses/${course.slug}`}>
-                          <Button variant="outline">Go Back</Button>
+                          <Button variant="outline">Go back</Button>
                         </Link>
                         <fetcher.Form method="post">
                           <input
@@ -544,7 +544,7 @@ export default function PurchaseConfirmation({
                           <Button size="lg" disabled={isSubmitting}>
                             {isSubmitting
                               ? "Processing..."
-                              : "Confirm Purchase"}
+                              : "Confirm purchase"}
                           </Button>
                         </fetcher.Form>
                       </div>
@@ -585,8 +585,8 @@ export default function PurchaseConfirmation({
                     {/* Price breakdown */}
                     <div>
                       <div className="text-sm text-muted-foreground">
-                        {formatPrice(regionalPrice)} &times; {quantity}{" "}
-                        {quantity === 1 ? "seat" : "seats"}
+                        {formatPrice(regionalPrice)} &times;{" "}
+                        {pluralize(quantity, "seat")}
                       </div>
                       <div className="text-3xl font-bold">
                         {formatPrice(teamTotal)}
@@ -601,7 +601,7 @@ export default function PurchaseConfirmation({
 
                     <div className="flex items-center gap-3">
                       <Link to={`/courses/${course.slug}`}>
-                        <Button variant="outline">Go Back</Button>
+                        <Button variant="outline">Go back</Button>
                       </Link>
                       <fetcher.Form method="post">
                         <input
@@ -613,7 +613,7 @@ export default function PurchaseConfirmation({
                         <Button size="lg" disabled={isSubmitting}>
                           {isSubmitting
                             ? "Processing..."
-                            : `Buy ${quantity} ${quantity === 1 ? "Seat" : "Seats"}`}
+                            : `Buy ${pluralize(quantity, "seat")}`}
                         </Button>
                       </fetcher.Form>
                     </div>

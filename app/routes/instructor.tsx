@@ -22,6 +22,7 @@ import { CourseStatus, UserRole } from "~/db/schema";
 import { db } from "~/db";
 import { users, courses, modules, lessons, enrollments } from "~/db/schema";
 import { eq, or, sql } from "drizzle-orm";
+import { pluralize } from "~/lib/pluralize";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -195,7 +196,7 @@ export default function InstructorDashboard({
         <Link to="/instructor/new">
           <Button>
             <Plus className="mr-2 size-4" />
-            New Course
+            New course
           </Button>
         </Link>
       </div>
@@ -210,7 +211,7 @@ export default function InstructorDashboard({
           <Link to="/instructor/new" className="mt-4">
             <Button>
               <Plus className="mr-2 size-4" />
-              Create Course
+              Create course
             </Button>
           </Link>
         </div>
@@ -250,15 +251,13 @@ export default function InstructorDashboard({
                   <div className="flex items-center gap-1.5">
                     <BookOpen className="size-4" />
                     <span>
-                      {course.lessonCount}{" "}
-                      {course.lessonCount === 1 ? "lesson" : "lessons"}
+                      {pluralize(course.lessonCount, "lesson")}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Users className="size-4" />
                     <span>
-                      {course.enrollmentCount}{" "}
-                      {course.enrollmentCount === 1 ? "student" : "students"}
+                      {pluralize(course.enrollmentCount, "student")}
                     </span>
                   </div>
                 </div>
@@ -267,7 +266,7 @@ export default function InstructorDashboard({
                 <Link to={`/instructor/${course.id}`} className="w-full">
                   <Button className="w-full" variant="outline">
                     <BookOpen className="mr-2 size-4" />
-                    Edit Course
+                    Edit course
                   </Button>
                 </Link>
               </CardFooter>
@@ -315,10 +314,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

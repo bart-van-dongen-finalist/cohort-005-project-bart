@@ -122,7 +122,7 @@ export async function action({ params, request }: Route.ActionArgs) {
   const course = getCourseBySlug(slug);
 
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const student = db
@@ -132,7 +132,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     .get();
 
   if (!student) {
-    throw data("User not found", { status: 404 });
+    throw data("User not found.", { status: 404 });
   }
 
   const purchase = getLatestPurchase(currentUserId, course.id);

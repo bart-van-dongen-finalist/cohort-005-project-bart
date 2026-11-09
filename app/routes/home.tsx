@@ -12,6 +12,7 @@ import { getDiscountLevelInfo, COUNTRIES } from "~/lib/regional-discount";
 import { eq, like, and, or, sql } from "drizzle-orm";
 import { db } from "~/db";
 import { courses, categories, users, modules, lessons } from "~/db/schema";
+import { pluralize } from "~/lib/pluralize";
 
 function getAllUsers() {
   return db.select().from(users).all();
@@ -210,7 +211,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <div className="mt-10 flex items-center justify-center gap-4">
           <Button asChild size="lg">
             <Link to="/courses">
-              Browse Courses
+              Browse courses
               <ArrowRight className="ml-2 size-4" />
             </Link>
           </Button>
@@ -224,7 +225,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
               <BookOpen className="size-6 text-primary" />
             </div>
             <p className="text-2xl font-bold">{totalCourses}</p>
-            <p className="text-sm text-muted-foreground">Available Courses</p>
+            <p className="text-sm text-muted-foreground">Available courses</p>
           </div>
           <div className="text-center">
             <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-lg bg-primary/10">
@@ -247,7 +248,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
         <section className="mx-auto max-w-6xl px-6 py-20">
           <div className="mb-10 flex items-end justify-between">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Featured Courses</h2>
+              <h2 className="text-3xl font-bold tracking-tight">Featured courses</h2>
               <p className="mt-2 text-muted-foreground">
                 Start learning with our most popular courses
               </p>
@@ -285,7 +286,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
                     </span>
                     <span className="flex items-center gap-1">
                       <BookOpen className="size-3" />
-                      {course.lessonCount} lessons
+                      {pluralize(course.lessonCount, "lesson")}
                     </span>
                   </CardFooter>
                 </Card>

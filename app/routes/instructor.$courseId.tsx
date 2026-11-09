@@ -58,6 +58,7 @@ import {
 import { data, isRouteErrorResponse } from "react-router";
 import { z } from "zod";
 import { parseFormData, parseParams } from "~/lib/validation";
+import { pluralize } from "~/lib/pluralize";
 
 function getUserById(id: number) {
   return db.select().from(users).where(eq(users.id, id)).get();
@@ -162,7 +163,7 @@ function updateCourseStatus(id: number, status: CourseStatus) {
 
 function updateCourseSalesCopy(id: number, salesCopy: string) {
   if (salesCopy.trim().length === 0) {
-    throw new Error("Sales copy cannot be empty");
+    throw new Error("Sales copy cannot be empty.");
   }
 
   return db
@@ -549,7 +550,7 @@ const courseEditorActionSchema = z.discriminatedUnion("intent", [
 ]);
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.course?.title ?? "Edit Course";
+  const title = loaderData?.course?.title ?? "Edit course";
   return [
     { title: `Edit: ${title} — Cadence` },
     { name: "description", content: `Edit course: ${title}` },
@@ -1186,7 +1187,7 @@ function AddModuleForm() {
         className="mt-4"
       >
         <Plus className="mr-1.5 size-4" />
-        Add Module
+        Add module
       </Button>
     );
   }
@@ -1405,7 +1406,7 @@ function AddLessonForm({ moduleId }: { moduleId: number }) {
         className="mt-2 text-muted-foreground"
       >
         <Plus className="mr-1 size-3.5" />
-        Add Lesson
+        Add lesson
       </Button>
     );
   }
@@ -1657,11 +1658,11 @@ export default function InstructorCourseEditor({
         <div className="mt-4 flex flex-wrap items-center gap-4 px-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <BookOpen className="size-4" />
-            {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
+            {pluralize(lessonCount, "lesson")}
           </span>
           <span className="flex items-center gap-1.5">
             <Users className="size-4" />
-            {enrollmentCount} {enrollmentCount === 1 ? "student" : "students"}
+            {pluralize(enrollmentCount, "student")}
           </span>
           <span className="text-xs text-muted-foreground">
             Slug: /courses/{course.slug}
@@ -1682,7 +1683,7 @@ export default function InstructorCourseEditor({
           </TabsTrigger>
           <TabsTrigger value="sales-copy">
             <FileText className="size-4" />
-            Sales Copy
+            Sales copy
           </TabsTrigger>
           <TabsTrigger value="students">
             <Users className="size-4" />
@@ -1878,7 +1879,7 @@ export default function InstructorCourseEditor({
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <h2 className="text-lg font-semibold">Course Status</h2>
+                <h2 className="text-lg font-semibold">Course status</h2>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
@@ -1995,7 +1996,7 @@ export default function InstructorCourseEditor({
                   <Link to={`/courses/${course.slug}`}>
                     <Button variant="outline" size="sm">
                       <Eye className="mr-1.5 size-4" />
-                      View Public Page
+                      View course
                     </Button>
                   </Link>
                 </div>
@@ -2004,11 +2005,11 @@ export default function InstructorCourseEditor({
           </div>
         </TabsContent>
 
-        {/* Sales Copy Tab */}
+        {/* Sales copy Tab */}
         <TabsContent value="sales-copy" className="mt-6">
           <Card>
             <CardHeader>
-              <h2 className="text-lg font-semibold">Sales Copy</h2>
+              <h2 className="text-lg font-semibold">Sales copy</h2>
               <p className="text-sm text-muted-foreground">
                 Write the course sales copy in Markdown. This is shown on the
                 public course page. Press Ctrl+S to format and save.
@@ -2032,7 +2033,7 @@ export default function InstructorCourseEditor({
                   <Save className="mr-1.5 size-4" />
                   {salesCopyFetcher.state !== "idle"
                     ? "Saving..."
-                    : "Save Sales Copy"}
+                    : "Save sales copy"}
                 </Button>
                 {salesCopyIsEmpty ? (
                   <span className="text-sm text-destructive">
@@ -2055,13 +2056,13 @@ export default function InstructorCourseEditor({
           <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <Users className="size-4" />
-              {students.length} {students.length === 1 ? "student" : "students"}{" "}
+              {pluralize(students.length, "student")}{" "}
               enrolled
             </span>
             {quizCount > 0 && (
               <span className="flex items-center gap-1.5">
                 <Award className="size-4" />
-                {quizCount} {quizCount === 1 ? "quiz" : "quizzes"}
+                {pluralize(quizCount, "quiz", "quizzes")}
               </span>
             )}
           </div>
@@ -2096,7 +2097,7 @@ export default function InstructorCourseEditor({
                         </th>
                         {quizCount > 0 && (
                           <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                            Quiz Scores
+                            Quiz scores
                           </th>
                         )}
                       </tr>
@@ -2149,11 +2150,11 @@ export default function InstructorCourseEditor({
                                 </span>
                               ) : student.progress > 0 ? (
                                 <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                  In Progress
+                                  In progress
                                 </span>
                               ) : (
                                 <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
-                                  Not Started
+                                  Not started
                                 </span>
                               )}
                             </td>
@@ -2242,7 +2243,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

@@ -493,14 +493,14 @@ export default function QuizBuilderWizard({
     return (
       <Card>
         <CardHeader>
-          <h2 className="text-lg font-semibold">Quiz Settings</h2>
+          <h2 className="text-lg font-semibold">Quiz settings</h2>
           <p className="text-sm text-muted-foreground">
             Set the quiz title and passing score.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="quizTitle">Quiz Title</Label>
+            <Label htmlFor="quizTitle">Quiz title</Label>
             <Input
               id="quizTitle"
               value={wizard.title}
@@ -511,7 +511,7 @@ export default function QuizBuilderWizard({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="passingScore">Passing Score (%)</Label>
+            <Label htmlFor="passingScore">Passing score (%)</Label>
             <Input
               id="passingScore"
               type="number"
@@ -620,7 +620,7 @@ export default function QuizBuilderWizard({
           <CardContent className="space-y-4">
             {wizard.questions.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No questions added yet. Click &quot;Add Question&quot; to get
+                No questions added yet. Click &quot;Add question&quot; to get
                 started.
               </p>
             )}
@@ -683,7 +683,7 @@ export default function QuizBuilderWizard({
                                     <SelectItem
                                       value={QuestionType.MultipleChoice}
                                     >
-                                      Multiple Choice
+                                      Multiple choice
                                     </SelectItem>
                                     <SelectItem value={QuestionType.TrueFalse}>
                                       True / False
@@ -712,7 +712,7 @@ export default function QuizBuilderWizard({
 
             <Button variant="outline" onClick={addQuestion}>
               <Plus className="mr-1.5 size-4" />
-              Add Question
+              Add question
             </Button>
           </CardContent>
         </Card>
@@ -790,7 +790,7 @@ export default function QuizBuilderWizard({
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Answer Options</h2>
+            <h2 className="text-lg font-semibold">Answer options</h2>
             <p className="text-sm text-muted-foreground">
               Set answer options for each question and mark the correct answer.
             </p>
@@ -814,7 +814,7 @@ export default function QuizBuilderWizard({
                   <span className="ml-auto text-xs text-muted-foreground">
                     {q.type === QuestionType.TrueFalse
                       ? "True/False"
-                      : "Multiple Choice"}
+                      : "Multiple choice"}
                   </span>
                 </div>
 
@@ -869,7 +869,7 @@ export default function QuizBuilderWizard({
                     className="mt-2"
                   >
                     <Plus className="mr-1 size-3" />
-                    Add Option
+                    Add option
                   </Button>
                 )}
               </div>
@@ -913,7 +913,7 @@ export default function QuizBuilderWizard({
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Review Quiz</h2>
+            <h2 className="text-lg font-semibold">Review quiz</h2>
             <p className="text-sm text-muted-foreground">
               Review your quiz before saving.
             </p>
@@ -927,7 +927,7 @@ export default function QuizBuilderWizard({
                   {wizard.title || "(empty)"}
                 </div>
                 <div>
-                  <span className="font-medium">Passing Score:</span>{" "}
+                  <span className="font-medium">Passing score:</span>{" "}
                   {wizard.passingScore}%
                 </div>
                 <div>
@@ -950,7 +950,7 @@ export default function QuizBuilderWizard({
                   <span className="ml-auto text-xs text-muted-foreground">
                     {q.type === QuestionType.TrueFalse
                       ? "True/False"
-                      : "Multiple Choice"}
+                      : "Multiple choice"}
                   </span>
                 </div>
                 <div className="ml-8 space-y-1">
@@ -1009,8 +1009,8 @@ export default function QuizBuilderWizard({
                 {fetcher.state !== "idle"
                   ? "Saving..."
                   : isEditing
-                    ? "Update Quiz"
-                    : "Create Quiz"}
+                    ? "Update quiz"
+                    : "Create quiz"}
               </Button>
 
               {fetcherData?.error && (
@@ -1053,7 +1053,7 @@ export default function QuizBuilderWizard({
         </Link>
         <span className="mx-2">/</span>
         <span className="text-foreground">
-          {isEditing ? "Edit Quiz" : "Create Quiz"}
+          {isEditing ? "Edit quiz" : "Create quiz"}
         </span>
       </nav>
 
@@ -1062,13 +1062,13 @@ export default function QuizBuilderWizard({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to Lesson Editor
+        Back to lesson editor
       </Link>
 
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">
-            {isEditing ? "Edit Quiz" : "Create Quiz"}
+            {isEditing ? "Edit quiz" : "Create quiz"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Lesson: {lesson.title}
@@ -1089,7 +1089,7 @@ export default function QuizBuilderWizard({
             }}
           >
             <Trash2 className="mr-1.5 size-4" />
-            Delete Quiz
+            Delete quiz
           </Button>
         )}
       </div>
@@ -1166,7 +1166,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

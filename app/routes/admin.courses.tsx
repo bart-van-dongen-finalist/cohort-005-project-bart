@@ -28,6 +28,7 @@ import {
 } from "~/components/ui/select";
 import { AlertTriangle, BookOpen, Users } from "lucide-react";
 import { data, isRouteErrorResponse, Link } from "react-router";
+import { pluralize } from "~/lib/pluralize";
 
 const adminCourseActionSchema = z.discriminatedUnion("intent", [
   z.object({
@@ -323,7 +324,7 @@ export default function AdminCourses({ loaderData }: Route.ComponentProps) {
       <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
         <BookOpen className="size-4" />
         <span>
-          {courses.length} {courses.length === 1 ? "course" : "courses"} total
+          {pluralize(courses.length, "course")} total
         </span>
       </div>
 
@@ -404,7 +405,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

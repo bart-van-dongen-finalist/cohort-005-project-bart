@@ -27,6 +27,7 @@ import {
 import { data, isRouteErrorResponse } from "react-router";
 import { formatDuration } from "~/lib/utils";
 import { z } from "zod";
+import { pluralize } from "~/lib/pluralize";
 
 const paramsSchema = z.object({
   courseId: z.coerce.number().int(),
@@ -117,7 +118,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, request }: Route.LoaderArgs) {
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) {
-    throw data("Invalid parameters", { status: 400 });
+    throw data("Invalid parameters.", { status: 400 });
   }
 
   const { courseId, moduleId } = parsed.data;
@@ -215,7 +216,7 @@ export default function InstructorModulePreview({
         <Link to={`/courses/${course.slug}/${mod.id}`}>
           <Button variant="outline" size="sm">
             <ExternalLink className="mr-1 size-3.5" />
-            Student View
+            Student view
           </Button>
         </Link>
       </div>
@@ -225,7 +226,7 @@ export default function InstructorModulePreview({
       <div className="mb-6 flex items-center gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <BookOpen className="size-4" />
-          {totalLessons} {totalLessons === 1 ? "lesson" : "lessons"}
+          {pluralize(totalLessons, "lesson")}
         </span>
         {totalDuration > 0 && (
           <span className="flex items-center gap-1">
@@ -358,7 +359,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

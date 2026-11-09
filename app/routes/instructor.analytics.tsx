@@ -1243,10 +1243,8 @@ function CourseProgress({ progress }: { progress: CourseProgressSummary }) {
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Lessons completed per enrolled student, across{" "}
-            {progress.enrolledCount}{" "}
-            {progress.enrolledCount === 1 ? "student" : "students"} and{" "}
-            {progress.totalLessons}{" "}
-            {progress.totalLessons === 1 ? "lesson" : "lessons"}.
+            {pluralize(progress.enrolledCount, "student")} and{" "}
+            {pluralize(progress.totalLessons, "lesson")}.
           </p>
         </CardContent>
       </Card>
@@ -1441,7 +1439,7 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
             the figure is stated in net, the money they actually keep. */}
         {formatMoney(breakdown.discountedNetCents)} of your{" "}
         {formatMoney(breakdown.netCents)} net earnings (
-        {breakdown.discountedSharePercent}%) came from countries with a Regional
+        {breakdown.discountedSharePercent}%) came from countries with a regional
         discount. Averages are what a purchase there actually fetched — list prices
         change and are not kept, so no discount is reconstructed per purchase.
       </p>
@@ -1636,9 +1634,7 @@ export default function InstructorAnalytics({
               <MoneyCard
                 label="Gross revenue"
                 amountCents={summary.grossCents}
-                hint={`What students paid, across ${summary.purchaseCount} ${
-                  summary.purchaseCount === 1 ? "purchase" : "purchases"
-                }.`}
+                hint={`What students paid, across ${pluralize(summary.purchaseCount, "purchase")}.`}
               />
               <MoneyCard
                 label={`Platform fee (${PLATFORM_FEE_PERCENT}%)`}
@@ -1704,9 +1700,7 @@ export default function InstructorAnalytics({
               <StatCard
                 label="Course rating"
                 value={ratings.average === null ? "—" : `${ratings.average} ★`}
-                hint={`Across ${ratings.count} ${
-                  ratings.count === 1 ? "rating" : "ratings"
-                }.`}
+                hint={`Across ${pluralize(ratings.count, "rating")}.`}
                 emptyHint="Nobody has rated your courses in this period."
               />
             </div>
@@ -1785,8 +1779,8 @@ export default function InstructorAnalytics({
                     <CardContent className="p-6">
                       <h2 className="text-lg font-semibold">Drop-off</h2>
                       <p className="mb-4 text-sm text-muted-foreground">
-                        How many of the {funnel.enrolledCount} enrolled{" "}
-                        {funnel.enrolledCount === 1 ? "student" : "students"}{" "}
+                        How many of the{" "}
+                        {pluralize(funnel.enrolledCount, "enrolled student")}{" "}
                         got at least as far as each lesson, all time. The bars
                         only descend, so the biggest gap is where students quit
                         — the figure beside a lesson counts the ones who never
@@ -1947,7 +1941,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/courses">
-            <Button>Browse Courses</Button>
+            <Button>Browse courses</Button>
           </Link>
         </div>
       </div>

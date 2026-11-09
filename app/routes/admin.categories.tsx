@@ -14,6 +14,7 @@ import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
 import { AlertTriangle, BookOpen, Pencil, Plus, Tag, Trash2 } from "lucide-react";
 import { data, isRouteErrorResponse, Link } from "react-router";
+import { pluralize } from "~/lib/pluralize";
 
 const adminCategoryActionSchema = z.discriminatedUnion("intent", [
   z.object({
@@ -124,7 +125,7 @@ function deleteCategory(id: number) {
   const count = courseCount?.count ?? 0;
   if (count > 0) {
     throw new Error(
-      `Cannot delete: ${count} course${count === 1 ? "" : "s"} use this category.`
+      `Cannot delete: ${pluralize(count, "course")} ${count === 1 ? "uses" : "use"} this category.`
     );
   }
 
@@ -137,7 +138,7 @@ function deleteCategory(id: number) {
 
 export function meta() {
   return [
-    { title: "Manage Categories — Cadence" },
+    { title: "Manage categories — Cadence" },
     { name: "description", content: "Manage course categories" },
   ];
 }
@@ -518,11 +519,11 @@ export default function AdminCategories({ loaderData }: Route.ComponentProps) {
           Home
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">Manage Categories</span>
+        <span className="text-foreground">Manage categories</span>
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Manage Categories</h1>
+        <h1 className="text-3xl font-bold">Manage categories</h1>
         <p className="mt-1 text-muted-foreground">
           Create, edit, and delete course categories
         </p>
@@ -531,7 +532,7 @@ export default function AdminCategories({ loaderData }: Route.ComponentProps) {
       <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
         <Tag className="size-4" />
         <span>
-          {categories.length} {categories.length === 1 ? "category" : "categories"} total
+          {pluralize(categories.length, "category", "categories")} total
         </span>
       </div>
 
@@ -549,7 +550,7 @@ export default function AdminCategories({ loaderData }: Route.ComponentProps) {
               onClick={() => setIsAdding(true)}
             >
               <Plus className="mr-1.5 size-3.5" />
-              Add Category
+              Add category
             </Button>
           </CardContent>
         </Card>
@@ -596,7 +597,7 @@ export default function AdminCategories({ loaderData }: Route.ComponentProps) {
               onClick={() => setIsAdding(true)}
             >
               <Plus className="mr-1.5 size-3.5" />
-              Add Category
+              Add category
             </Button>
           )}
         </>
@@ -637,7 +638,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

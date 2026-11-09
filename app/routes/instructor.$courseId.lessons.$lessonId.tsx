@@ -85,7 +85,7 @@ function updateLesson(
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  const title = loaderData?.lesson?.title ?? "Edit Lesson";
+  const title = loaderData?.lesson?.title ?? "Edit lesson";
   return [
     { title: `Edit: ${title} — Cadence` },
     { name: "description", content: `Edit lesson: ${title}` },
@@ -253,7 +253,7 @@ export default function InstructorLessonEditor({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <Card className="mx-4 w-full max-w-md">
             <CardHeader>
-              <h2 className="text-lg font-semibold">Unsaved Changes</h2>
+              <h2 className="text-lg font-semibold">Unsaved changes</h2>
               <p className="text-sm text-muted-foreground">
                 You have unsaved changes that will be lost if you leave this
                 page.
@@ -261,10 +261,10 @@ export default function InstructorLessonEditor({
             </CardHeader>
             <CardContent className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => blocker.reset()}>
-                Stay on Page
+                Stay on page
               </Button>
               <Button variant="destructive" onClick={() => blocker.proceed()}>
-                Leave Page
+                Leave page
               </Button>
             </CardContent>
           </Card>
@@ -289,7 +289,7 @@ export default function InstructorLessonEditor({
         className="mb-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="mr-1 size-4" />
-        Back to Course Editor
+        Back to course editor
       </Link>
 
       <div className="mb-6">
@@ -298,7 +298,7 @@ export default function InstructorLessonEditor({
           <Link to={`/courses/${course.slug}/lessons/${lesson.id}`}>
             <Button variant="outline" size="sm">
               <ExternalLink className="mr-1.5 size-4" />
-              View Lesson
+              View lesson
             </Button>
           </Link>
         </div>
@@ -311,7 +311,7 @@ export default function InstructorLessonEditor({
         {/* Content */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Lesson Content</h2>
+            <h2 className="text-lg font-semibold">Lesson content</h2>
             <p className="text-sm text-muted-foreground">
               Write lesson content in Markdown. Press Ctrl+S to format and save.
             </p>
@@ -374,7 +374,7 @@ export default function InstructorLessonEditor({
         {/* GitHub Repo */}
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">GitHub Repository</h2>
+            <h2 className="text-lg font-semibold">GitHub repository</h2>
             <p className="text-sm text-muted-foreground">
               Link to a GitHub repository for this lesson's code.
             </p>
@@ -407,7 +407,7 @@ export default function InstructorLessonEditor({
             <Link to={`/instructor/${course.id}/lessons/${lesson.id}/quiz`}>
               <Button variant="outline">
                 <ClipboardList className="mr-1.5 size-4" />
-                {quiz ? "Edit Quiz" : "Create Quiz"}
+                {quiz ? "Edit quiz" : "Create quiz"}
               </Button>
             </Link>
           </CardContent>
@@ -420,7 +420,7 @@ export default function InstructorLessonEditor({
             disabled={!hasChanges || fetcher.state !== "idle"}
           >
             <Save className="mr-1.5 size-4" />
-            {fetcher.state !== "idle" ? "Saving..." : "Save Changes"}
+            {fetcher.state !== "idle" ? "Saving..." : "Save changes"}
           </Button>
           {hasChanges && (
             <span className="text-sm text-muted-foreground">
@@ -478,7 +478,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             <Button variant="outline">My courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

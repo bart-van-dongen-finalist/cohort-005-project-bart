@@ -30,6 +30,7 @@ import {
 import { data, isRouteErrorResponse } from "react-router";
 import { formatDuration } from "~/lib/utils";
 import { z } from "zod";
+import { pluralize } from "~/lib/pluralize";
 
 const paramsSchema = z.object({
   slug: z.string().min(1),
@@ -161,29 +162,29 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export async function loader({ params, request }: Route.LoaderArgs) {
   const parsed = paramsSchema.safeParse(params);
   if (!parsed.success) {
-    throw data("Invalid parameters", { status: 400 });
+    throw data("Invalid parameters.", { status: 400 });
   }
 
   const { slug, moduleId } = parsed.data;
 
   const course = getCourseBySlug(slug);
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const courseWithDetails = getCourseWithDetails(course.id);
   if (!courseWithDetails) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const moduleWithLessons = getModuleWithLessons(moduleId);
   if (!moduleWithLessons) {
-    throw data("Module not found", { status: 404 });
+    throw data("Module not found.", { status: 404 });
   }
 
   // Verify module belongs to this course
   if (moduleWithLessons.courseId !== course.id) {
-    throw data("Module not found in this course", { status: 404 });
+    throw data("Module not found in this course.", { status: 404 });
   }
 
   const currentUserId = await getCurrentUserId(request);
@@ -297,7 +298,7 @@ export default function ModuleDetail({ loaderData }: Route.ComponentProps) {
       <div className="mb-6 flex items-center gap-4 text-sm text-muted-foreground">
         <span className="flex items-center gap-1">
           <BookOpen className="size-4" />
-          {totalLessons} {totalLessons === 1 ? "lesson" : "lessons"}
+          {pluralize(totalLessons, "lesson")}
         </span>
         {totalDuration > 0 && (
           <span className="flex items-center gap-1">
@@ -312,7 +313,7 @@ export default function ModuleDetail({ loaderData }: Route.ComponentProps) {
         <div className="mb-6">
           <div className="mb-1 flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
-              {completedLessons} of {totalLessons} lessons completed
+              {completedLessons} of {pluralize(totalLessons, "lesson")} completed
             </span>
             <span className="font-medium">{moduleProgress}%</span>
           </div>
@@ -444,10 +445,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
         <p className="mb-6 text-muted-foreground">{message}</p>
         <div className="flex items-center justify-center gap-3">
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

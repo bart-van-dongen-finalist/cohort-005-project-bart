@@ -104,7 +104,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       const course = getCourseById(coupon.courseId);
       courseMap.set(coupon.courseId, {
         courseId: coupon.courseId,
-        courseTitle: course?.title ?? "Unknown Course",
+        courseTitle: course?.title ?? "Unknown course",
         courseSlug: course?.slug ?? "",
         total: 0,
         redeemed: 0,
@@ -139,7 +139,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       id: coupon.id,
       code: coupon.code,
       courseId: coupon.courseId,
-      courseTitle: course?.title ?? "Unknown Course",
+      courseTitle: course?.title ?? "Unknown course",
       redeemedByEmail,
       createdAt: coupon.createdAt,
     };
@@ -200,7 +200,7 @@ export default function Team({ loaderData }: Route.ComponentProps) {
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Team Management</h1>
+        <h1 className="text-3xl font-bold">Team management</h1>
         <p className="mt-1 text-muted-foreground">
           Manage your team&apos;s course seats and coupons
         </p>
@@ -354,10 +354,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
         </div>
       </div>

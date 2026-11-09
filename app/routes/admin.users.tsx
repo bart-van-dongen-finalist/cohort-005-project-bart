@@ -20,6 +20,7 @@ import {
 } from "~/components/ui/select";
 import { AlertTriangle, Pencil, Shield, Users } from "lucide-react";
 import { data, isRouteErrorResponse, Link } from "react-router";
+import { pluralize } from "~/lib/pluralize";
 
 const adminUserActionSchema = z.discriminatedUnion("intent", [
   z.object({
@@ -68,7 +69,7 @@ function updateUserRole(id: number, role: UserRole) {
 
 export function meta() {
   return [
-    { title: "Manage Users — Cadence" },
+    { title: "Manage users — Cadence" },
     { name: "description", content: "Manage platform users" },
   ];
 }
@@ -389,11 +390,11 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
           Home
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">Manage Users</span>
+        <span className="text-foreground">Manage users</span>
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Manage Users</h1>
+        <h1 className="text-3xl font-bold">Manage users</h1>
         <p className="mt-1 text-muted-foreground">
           View and manage platform users, edit details, and change roles
         </p>
@@ -402,7 +403,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
       <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
         <Users className="size-4" />
         <span>
-          {users.length} {users.length === 1 ? "user" : "users"} total
+          {pluralize(users.length, "user")} total
         </span>
       </div>
 
@@ -483,7 +484,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>

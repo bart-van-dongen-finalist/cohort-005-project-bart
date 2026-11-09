@@ -58,6 +58,7 @@ import { parseFormData } from "~/lib/validation";
 import { MAX_RATING, MIN_RATING } from "~/lib/ratings";
 import { REFUND_WINDOW_DAYS } from "~/lib/refunds";
 import { StarRating, StarRatingInput } from "~/components/star-rating";
+import { pluralize } from "~/lib/pluralize";
 
 function getCourseBySlug(slug: string) {
   return db.select().from(courses).where(eq(courses.slug, slug)).get();
@@ -336,7 +337,7 @@ function getCourseRatingSummary(courseId: number): CourseRatingSummary {
 function rateCourse(userId: number, courseId: number, rating: number) {
   if (!Number.isInteger(rating) || rating < MIN_RATING || rating > MAX_RATING) {
     throw new Error(
-      `Rating must be a whole number between ${MIN_RATING} and ${MAX_RATING}`
+      `Rating must be a whole number between ${MIN_RATING} and ${MAX_RATING}.`
     );
   }
 
@@ -347,7 +348,7 @@ function rateCourse(userId: number, courseId: number, rating: number) {
     .get();
 
   if (!course) {
-    throw new Error("Course not found");
+    throw new Error("Course not found.");
   }
 
   const existing = findRating(userId, courseId);
@@ -511,12 +512,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const course = getCourseBySlug(slug);
 
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const courseWithDetails = getCourseWithDetails(course.id);
   if (!courseWithDetails) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   const lessonCount = getLessonCountForCourse(course.id);
@@ -594,7 +595,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 
   const course = getCourseBySlug(params.slug);
   if (!course) {
-    throw data("Course not found", { status: 404 });
+    throw data("Course not found.", { status: 404 });
   }
 
   if (!isUserEnrolled(currentUserId, course.id)) {
@@ -793,7 +794,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
             <Link to={`/instructor/${course.id}`}>
               <Button variant="outline" size="sm" className="shrink-0">
                 <Pencil className="mr-1.5 size-3.5" />
-                Edit Course
+                Edit course
               </Button>
             </Link>
           )}
@@ -818,7 +819,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           </span>
           <span className="flex items-center gap-1">
             <BookOpen className="size-4" />
-            {lessonCount} lessons
+            {pluralize(lessonCount, "lesson")}
           </span>
           {totalDuration > 0 && (
             <span className="flex items-center gap-1">
@@ -867,9 +868,9 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
             <CardHeader>
               <h2 className="text-lg font-semibold">
                 {isInstructor
-                  ? "Your Course"
+                  ? "Your course"
                   : enrolled
-                    ? "Your Progress"
+                    ? "Your progress"
                     : "Buy this course"}
               </h2>
             </CardHeader>
@@ -878,7 +879,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                 <Link to={`/instructor/${course.id}`}>
                   <Button className="w-full">
                     <Pencil className="mr-2 size-4" />
-                    Manage Course
+                    Manage course
                   </Button>
                 </Link>
               ) : enrolled ? (
@@ -903,8 +904,8 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                           <Button className="w-full">
                             <PlayCircle className="mr-2 size-4" />
                             {progress > 0
-                              ? "Continue Learning"
-                              : "Start Course"}
+                              ? "Continue learning"
+                              : "Start course"}
                           </Button>
                         </Link>
                       ) : null;
@@ -912,7 +913,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                   <Link to={teamPurchaseLink}>
                     <Button variant="outline" className="w-full">
                       <Users className="mr-2 size-4" />
-                      Buy More Seats
+                      Buy more seats
                     </Button>
                   </Link>
                   <RateCourse userRating={userRating} />
@@ -929,7 +930,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
               <div className="space-y-2 pt-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <BookOpen className="size-4" />
-                  <span>{lessonCount} lessons</span>
+                  <span>{pluralize(lessonCount, "lesson")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="size-4" />
@@ -1081,7 +1082,7 @@ function CourseContent({
 }) {
   return (
     <div>
-      <h2 className="mb-4 text-2xl font-bold">Course Content</h2>
+      <h2 className="mb-4 text-2xl font-bold">Course content</h2>
       {course.modules.length === 0 ? (
         <p className="text-muted-foreground">
           No content has been added to this course yet.
@@ -1100,7 +1101,7 @@ function CourseContent({
                   </Link>
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {mod.lessons.length} lessons
+                  {pluralize(mod.lessons.length, "lesson")}
                 </p>
               </CardHeader>
               <CardContent>
@@ -1230,10 +1231,10 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
             </Link>
           )}
           <Link to="/courses">
-            <Button variant="outline">Browse Courses</Button>
+            <Button variant="outline">Browse courses</Button>
           </Link>
           <Link to="/">
-            <Button>Go Home</Button>
+            <Button>Go home</Button>
           </Link>
         </div>
       </div>
