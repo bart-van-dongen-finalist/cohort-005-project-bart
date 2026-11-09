@@ -3,7 +3,7 @@ import { Link, data, isRouteErrorResponse, useFetcher } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
 import type { Route } from "./+types/instructor.questions";
-import { requireInstructorOrAdmin, requireStaff } from "~/lib/access.server";
+import { requireStaffRole, requireStaff } from "~/lib/access.server";
 import { renderComment } from "~/lib/comment-markdown.server";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
@@ -170,7 +170,7 @@ export function meta() {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { userId, isAdmin } = await requireInstructorOrAdmin(request);
+  const { userId, isAdmin } = await requireStaffRole(request);
 
   // Admins span every course; instructors see only the courses they own.
   const questions = getUnansweredQuestions(isAdmin ? null : userId);

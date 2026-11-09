@@ -864,7 +864,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     pppPurchaseCountry,
     comments,
     canViewContent,
-    canModerate: access.isStaff,
+    isStaff: access.isStaff,
     instructorName: instructor?.name ?? "your instructor",
   };
 }
@@ -1028,7 +1028,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
     pppPurchaseCountry,
     comments,
     canViewContent,
-    canModerate,
+    isStaff,
     instructorName,
   } = loaderData;
   const [autoplay, toggleAutoplay] = useAutoplay();
@@ -1245,7 +1245,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
             <CommentThread
               comments={comments}
               currentUserId={currentUserId}
-              canModerate={canModerate}
+              isStaff={isStaff}
               canPost
               instructorName={instructorName}
             />

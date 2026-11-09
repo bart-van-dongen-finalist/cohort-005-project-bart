@@ -17,14 +17,14 @@ import {
 } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
-function getTeamForAdmin(userId: number) {
+function getTeamForOwner(userId: number) {
   const membership = db
     .select()
     .from(teamMembers)
     .where(
       and(
         eq(teamMembers.userId, userId),
-        eq(teamMembers.role, TeamMemberRole.Admin)
+        eq(teamMembers.role, TeamMemberRole.Owner)
       )
     )
     .get();
@@ -77,7 +77,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw data("Select a user from the DevUI panel.", { status: 401 });
   }
 
-  const team = getTeamForAdmin(currentUserId);
+  const team = getTeamForOwner(currentUserId);
 
   if (!team) {
     throw data("You don't have a team. Purchase team seats to create one.", {

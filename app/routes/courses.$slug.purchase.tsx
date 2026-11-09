@@ -190,14 +190,14 @@ function createPurchase(
     .get();
 }
 
-function getTeamForAdmin(userId: number) {
+function getTeamForOwner(userId: number) {
   const membership = db
     .select()
     .from(teamMembers)
     .where(
       and(
         eq(teamMembers.userId, userId),
-        eq(teamMembers.role, TeamMemberRole.Admin)
+        eq(teamMembers.role, TeamMemberRole.Owner)
       )
     )
     .get();
@@ -208,12 +208,12 @@ function getTeamForAdmin(userId: number) {
 }
 
 function getOrCreateTeamForUser(userId: number) {
-  const existingTeam = getTeamForAdmin(userId);
+  const existingTeam = getTeamForOwner(userId);
   if (existingTeam) return existingTeam;
 
   const team = db.insert(teams).values({}).returning().get();
   db.insert(teamMembers)
-    .values({ teamId: team.id, userId, role: TeamMemberRole.Admin })
+    .values({ teamId: team.id, userId, role: TeamMemberRole.Owner })
     .returning()
     .get();
   return team;
@@ -590,8 +590,7 @@ export default function PurchaseConfirmation({
                     <p className="text-sm text-muted-foreground">
                       You&apos;ll receive {quantity} unique coupon{" "}
                       {quantity === 1 ? "link" : "links"} to share with your
-                      team members. Each link grants one person access to this
-                      course.
+                      team. Each link grants one person access to this course.
                     </p>
 
                     <div className="flex items-center gap-3">

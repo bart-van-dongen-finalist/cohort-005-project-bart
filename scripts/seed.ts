@@ -2291,7 +2291,7 @@ This course is still in draft while the cluster examples are rewritten against t
     .values({
       teamId: team1.id,
       userId: bossy.id,
-      role: TeamMemberRole.Admin,
+      role: TeamMemberRole.Owner,
       createdAt: daysAgo(30),
     })
     .run();
@@ -2353,7 +2353,7 @@ This course is still in draft while the cluster examples are rewritten against t
     .run();
 
   console.log(
-    `Created 1 team with Bossy McBossface as admin, 1 team purchase, and ${seededCoupons.length} coupons (${countRows(schema.coupons, isNotNull(schema.coupons.redeemedByUserId))} redeemed, ${countRows(schema.coupons, isNull(schema.coupons.redeemedByUserId))} available).`
+    `Created 1 team with Bossy McBossface as Team owner, 1 team purchase, and ${seededCoupons.length} coupons (${countRows(schema.coupons, isNotNull(schema.coupons.redeemedByUserId))} redeemed, ${countRows(schema.coupons, isNull(schema.coupons.redeemedByUserId))} available).`
   );
 
   // ─── Generated history ───
@@ -2612,14 +2612,14 @@ This course is still in draft while the cluster examples are rewritten against t
   // bought and redeemed nothing yet.
 
   function createTeamPurchase(
-    adminEmail: string,
+    ownerEmail: string,
     course: typeof course1,
     seats: number,
     codePrefix: string,
     purchasedDaysAgo: number,
     redeemerEmails: string[]
   ) {
-    const teamAdmin = studentByEmail(adminEmail);
+    const teamOwner = studentByEmail(ownerEmail);
 
     const [team] = db
       .insert(schema.teams)
@@ -2630,8 +2630,8 @@ This course is still in draft while the cluster examples are rewritten against t
     db.insert(schema.teamMembers)
       .values({
         teamId: team.id,
-        userId: teamAdmin.id,
-        role: TeamMemberRole.Admin,
+        userId: teamOwner.id,
+        role: TeamMemberRole.Owner,
         createdAt: daysAgo(purchasedDaysAgo),
       })
       .run();
@@ -2639,7 +2639,7 @@ This course is still in draft while the cluster examples are rewritten against t
     const [purchase] = db
       .insert(schema.purchases)
       .values({
-        userId: teamAdmin.id,
+        userId: teamOwner.id,
         courseId: course.id,
         amountPaid: course.price * seats,
         country: "US",
@@ -2724,8 +2724,8 @@ This course is still in draft while the cluster examples are rewritten against t
   );
 
   // ─── Liam's Purchase ───
-  // One learner part-way through a recent purchase, with no request raised, so
-  // the course page offers "Cancel my purchase". The dates count back from
+  // One Student part-way through a recent purchase, with no request raised, so
+  // the course page offers "Request a refund". The dates count back from
   // today, so the fourteen-day refund window is still open whenever you seed.
 
   const liam = studentByEmail("liam@example.com");

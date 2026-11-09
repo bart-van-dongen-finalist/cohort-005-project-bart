@@ -39,7 +39,7 @@ interface RecentCourse {
 interface SidebarProps {
   currentUser: CurrentUser | null;
   recentCourses?: RecentCourse[];
-  isTeamAdmin?: boolean;
+  isTeamOwner?: boolean;
 }
 
 interface NavItem {
@@ -109,7 +109,7 @@ function isVisible(item: NavItem, role: UserRole | null): boolean {
 export function Sidebar({
   currentUser,
   recentCourses = [],
-  isTeamAdmin = false,
+  isTeamOwner = false,
 }: SidebarProps) {
   const currentUserRole = currentUser?.role ?? null;
   const [isDark, setIsDark] = useState(false);
@@ -155,7 +155,7 @@ export function Sidebar({
               {item.label}
             </NavLink>
           ))}
-        {isTeamAdmin && (
+        {isTeamOwner && (
           <NavLink
             to="/team"
             className={({ isActive }) =>

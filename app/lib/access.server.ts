@@ -57,7 +57,7 @@ export type Access = {
   isAdmin: boolean;
   /** The instructor who owns this specific course. */
   isOwningInstructor: boolean;
-  /** Owning instructor or admin — the people who speak for the course. */
+  /** Staff: the owning Instructor or an Admin, who speak for the course. */
   isStaff: boolean;
   enrolled: boolean;
   pppBlocked: boolean;
@@ -184,10 +184,11 @@ export async function requireStaff(
 }
 
 /**
- * Throws unless the user is an instructor or an admin, without tying them to a
- * particular course — for pages that span all of someone's courses.
+ * Throws unless the user has a Staff role (any Instructor, or an Admin),
+ * without tying them to a particular course — for pages that span all of
+ * someone's courses.
  */
-export async function requireInstructorOrAdmin(request: Request) {
+export async function requireStaffRole(request: Request) {
   const userId = await requireUserId(request);
   const user = getUserById(userId);
 

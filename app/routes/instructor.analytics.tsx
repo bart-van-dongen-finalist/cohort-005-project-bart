@@ -1,7 +1,7 @@
 import { Link, isRouteErrorResponse, useSearchParams } from "react-router";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import type { Route } from "./+types/instructor.analytics";
-import { requireInstructorOrAdmin } from "~/lib/access.server";
+import { requireStaffRole } from "~/lib/access.server";
 import {
   and,
   count,
@@ -795,7 +795,7 @@ function getCourseRevenueByCountry(
 }
 
 export async function loader({ request, url }: Route.LoaderArgs) {
-  const { userId, isAdmin } = await requireInstructorOrAdmin(request);
+  const { userId, isAdmin } = await requireStaffRole(request);
 
   const range = parseAnalyticsRange(url.searchParams.get("range"));
   const tab: AnalyticsTab =
@@ -1144,7 +1144,7 @@ function TopBuyers({
                   </span>
                 </div>
               )}
-              {/* Said of team buyers too, not just solo ones: the manager who
+              {/* Said of team buyers too, not just solo ones: the Team owner who
                   bought a dozen seats and never opened the course is the very
                   person this table exists to surface. */}
               <div className="text-xs text-muted-foreground">
@@ -1662,7 +1662,7 @@ export default function InstructorAnalytics({
               <StatCard
                 label="Enrolled students"
                 value={audience.studentCount}
-                hint={`Learners with access, seats included.${
+                hint={`Students with access, seats included.${
                   audience.revenuePerStudentCents === null
                     ? ""
                     : ` ${formatMoney(
@@ -1730,8 +1730,7 @@ export default function InstructorAnalytics({
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold">Top buyers</h2>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Your ten biggest spenders in this period — the people worth
-                  reaching out to.
+                  The ten buyers who paid the most in this period.
                 </p>
                 <TopBuyers buyers={buyers} />
               </CardContent>
