@@ -268,8 +268,8 @@ export default function Redeem({
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
                 This coupon can only be redeemed from the same country as the
-                person who purchased it. Your location doesn&apos;t match the
-                buyer&apos;s country.
+                buyer. Your location doesn&apos;t match the buyer&apos;s
+                country.
               </p>
             </div>
           ) : (

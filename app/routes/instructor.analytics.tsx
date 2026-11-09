@@ -1101,8 +1101,7 @@ function TopBuyers({
   if (buyers.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        Nobody has bought anything in this period, so there is nobody to reach
-        out to yet.
+        No buyers in this period.
       </p>
     );
   }
@@ -1317,7 +1316,7 @@ function DropOffFunnel({ funnel }: { funnel: CourseFunnel }) {
   if (funnel.modules.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        This course has no lessons yet, so there is nothing to drop off from.
+        This course has no lessons yet.
       </p>
     );
   }
@@ -1425,8 +1424,8 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   if (breakdown.rows.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        This course has no purchases in this period, so there is nowhere to break
-        down yet.
+        This course has no purchases in this period, so there is no breakdown by
+        country.
       </p>
     );
   }
@@ -1440,8 +1439,8 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
         {formatMoney(breakdown.discountedNetCents)} of your{" "}
         {formatMoney(breakdown.netCents)} net earnings (
         {breakdown.discountedSharePercent}%) came from countries with a regional
-        discount. Averages are what a purchase there actually fetched — list prices
-        change and are not kept, so no discount is reconstructed per purchase.
+        discount. Average paid is what buyers in each country paid per purchase,
+        after any regional discount.
       </p>
       <table className="w-full text-sm">
         <thead>
@@ -1639,7 +1638,7 @@ export default function InstructorAnalytics({
               <MoneyCard
                 label={`Platform fee (${PLATFORM_FEE_PERCENT}%)`}
                 amountCents={summary.feeCents}
-                hint="Cadence's cut. Already deducted from your earnings."
+                hint="Cadence's platform fee, already deducted from your earnings."
               />
               <MoneyCard
                 label="Your net earnings"
@@ -1654,7 +1653,7 @@ export default function InstructorAnalytics({
                 label="Buyers"
                 value={audience.buyerCount}
                 hint="People who paid. A team buying several seats counts once."
-                emptyHint="Nobody has bought in this period."
+                emptyHint="No purchases in this period."
               />
               <StatCard
                 label="Enrolled students"
@@ -1767,7 +1766,7 @@ export default function InstructorAnalytics({
                     <p className="font-medium">Nobody is enrolled yet</p>
                     <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                       Progress and drop-off appear as soon as the first student
-                      joins {selectedCourse?.title}.
+                      enrolls in {selectedCourse?.title}.
                     </p>
                   </CardContent>
                 </Card>
@@ -1781,10 +1780,10 @@ export default function InstructorAnalytics({
                       <p className="mb-4 text-sm text-muted-foreground">
                         How many of the{" "}
                         {pluralize(funnel.enrolledCount, "enrolled student")}{" "}
-                        got at least as far as each lesson, all time. The bars
-                        only descend, so the biggest gap is where students quit
-                        — the figure beside a lesson counts the ones who never
-                        reached it, having stopped on the lesson above.
+                        reached each lesson, all time. The biggest gap shows
+                        where students stop. The number beside a lesson counts
+                        the students who reached the lesson above but not this
+                        one.
                       </p>
                       <DropOffFunnel funnel={funnel} />
                     </CardContent>
@@ -1797,8 +1796,8 @@ export default function InstructorAnalytics({
                   <p className="font-medium">Pick a course</p>
                   <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
                     {courseOptions.length === 0
-                      ? "There are no courses here to look into yet."
-                      : "Choose one of your courses above to see how far students get and where they give up."}
+                      ? "There are no courses here yet."
+                      : "Choose one of your courses above to see how far students get and where they stop."}
                   </p>
                 </CardContent>
               </Card>
@@ -1814,10 +1813,10 @@ export default function InstructorAnalytics({
                 <CardContent className="p-6">
                   <h2 className="text-lg font-semibold">Quiz results</h2>
                   <p className="mb-4 text-sm text-muted-foreground">
-                    One result per student per quiz, counting their best attempt
-                    — the same basis as the student roster. Retakes are not
-                    counted separately, so a quiz people get on the second go
-                    still reads as passed. Attempts made in this period only.
+                    One result per student per quiz, based on their best attempt,
+                    the same as the student roster. A quiz passed on a later
+                    attempt counts as passed. Only attempts made in this period
+                    count.
                   </p>
                   <QuizPassRates quizzes={quizzes} />
                 </CardContent>

@@ -426,7 +426,7 @@ export default function PurchaseConfirmation({
 
       <h1 className="mb-2 text-2xl font-bold">Confirm your purchase</h1>
       <p className="mb-8 text-muted-foreground">
-        Review the details below before buying.
+        Check the details below before buying.
       </p>
 
       <Card>

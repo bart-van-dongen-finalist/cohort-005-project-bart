@@ -397,8 +397,8 @@ export async function action({ params, request }: Route.ActionArgs) {
 const STEPS = [
   { label: "Settings", number: 1 },
   { label: "Questions", number: 2 },
-  { label: "Answers", number: 3 },
-  { label: "Review", number: 4 },
+  { label: "Options", number: 3 },
+  { label: "Check", number: 4 },
 ];
 
 function StepIndicator({
@@ -613,8 +613,8 @@ export default function QuizBuilderWizard({
           <CardHeader>
             <h2 className="text-lg font-semibold">Questions</h2>
             <p className="text-sm text-muted-foreground">
-              Add questions to your quiz. Drag to reorder. You&apos;ll set
-              answer options in the next step.
+              Add questions to your quiz. Drag to reorder. You&apos;ll add
+              options in the next step.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -720,7 +720,7 @@ export default function QuizBuilderWizard({
     );
   }
 
-  // ─── Step 3: Answers ───
+  // ─── Step 3: Options ───
   function addOption(questionId: string) {
     setWizard((prev) => ({
       ...prev,
@@ -790,9 +790,9 @@ export default function QuizBuilderWizard({
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Answer options</h2>
+            <h2 className="text-lg font-semibold">Options</h2>
             <p className="text-sm text-muted-foreground">
-              Set answer options for each question and mark the correct answer.
+              Add options to each question and mark the correct one.
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -880,7 +880,7 @@ export default function QuizBuilderWizard({
     );
   }
 
-  // ─── Step 4: Review ───
+  // ─── Step 4: Check ───
   function renderStep4() {
     const validationErrors: string[] = [];
     if (!wizard.title.trim()) validationErrors.push("Quiz title is required.");
@@ -897,7 +897,7 @@ export default function QuizBuilderWizard({
         );
       if (!q.options.some((o) => o.isCorrect))
         validationErrors.push(
-          `Question ${wizard.questions.indexOf(q) + 1} has no correct answer.`
+          `Question ${wizard.questions.indexOf(q) + 1} has no correct option.`
         );
       for (const opt of q.options) {
         if (!opt.text.trim())
@@ -913,9 +913,9 @@ export default function QuizBuilderWizard({
       <div className="space-y-4">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Review quiz</h2>
+            <h2 className="text-lg font-semibold">Check quiz</h2>
             <p className="text-sm text-muted-foreground">
-              Review your quiz before saving.
+              Check your quiz before saving.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -937,7 +937,7 @@ export default function QuizBuilderWizard({
               </div>
             </div>
 
-            {/* Questions review */}
+            {/* Questions check */}
             {wizard.questions.map((q, idx) => (
               <div key={q.id} className="rounded-lg border p-4">
                 <div className="mb-2 flex items-center gap-2">

@@ -396,7 +396,7 @@ export default function AdminUsers({ loaderData }: Route.ComponentProps) {
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Manage users</h1>
         <p className="mt-1 text-muted-foreground">
-          View and manage platform users, edit details, and change roles
+          View and manage platform users, edit names and emails, and change roles.
         </p>
       </div>
 

@@ -80,7 +80,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const team = getTeamForOwner(currentUserId);
 
   if (!team) {
-    throw data("You don't have a team. Purchase team seats to create one.", {
+    throw data("You don't have a team. Buy team seats to create one.", {
       status: 403,
     });
   }
