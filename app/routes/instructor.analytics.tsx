@@ -826,15 +826,14 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     ? requestedCourseId
     : null;
 
-  // Unanswered questions. A question qualifies when it is top-level, not
-  // deleted, not written by staff, and has no reply from the course's
-  // instructor or an admin.
-  const questionsSince = rangeStart(range);
-  const questionAuthor = alias(users, "author");
+  // Unanswered comments. A comment qualifies when it is top-level, not
+  // deleted, not written by Staff, and has no reply from Staff.
+  const commentsSince = rangeStart(range);
+  const commentAuthor = alias(users, "author");
   const reply = alias(comments, "reply");
   const replyAuthor = alias(users, "reply_author");
 
-  // Correlated: matches a live reply, by staff, to the outer question.
+  // Correlated: matches a live reply, by Staff, to the outer comment.
   const staffReply = db
     .select({ one: sql`1` })
     .from(reply)
@@ -850,40 +849,40 @@ export async function loader({ request, url }: Route.LoaderArgs) {
       )
     );
 
-  const questionConditions = [
+  const unansweredConditions = [
     isNull(comments.parentId),
     isNull(comments.deletedAt),
-    // Staff asking their own question shouldn't queue up as work for themselves.
-    ne(questionAuthor.role, UserRole.Admin),
+    // Staff posting their own comment shouldn't queue up as work for themselves.
+    ne(commentAuthor.role, UserRole.Admin),
     ne(comments.userId, courses.instructorId),
     notExists(staffReply),
   ];
 
   if (instructorId !== null) {
-    questionConditions.push(eq(courses.instructorId, instructorId));
+    unansweredConditions.push(eq(courses.instructorId, instructorId));
   }
 
-  const questionRow = db
+  const unansweredRow = db
     .select({
       inRange:
-        questionsSince === null
+        commentsSince === null
           ? count(comments.id)
-          : sql<number>`sum(case when ${comments.createdAt} >= ${questionsSince} then 1 else 0 end)`,
+          : sql<number>`sum(case when ${comments.createdAt} >= ${commentsSince} then 1 else 0 end)`,
       total: count(comments.id),
     })
     .from(comments)
-    .innerJoin(questionAuthor, eq(comments.userId, questionAuthor.id))
+    .innerJoin(commentAuthor, eq(comments.userId, commentAuthor.id))
     .innerJoin(lessons, eq(comments.lessonId, lessons.id))
     .innerJoin(modules, eq(lessons.moduleId, modules.id))
     .innerJoin(courses, eq(modules.courseId, courses.id))
-    .where(and(...questionConditions))
+    .where(and(...unansweredConditions))
     .get();
 
   // sum() is null over an empty set; count() is already 0.
-  const questionsInRange = Number(questionRow?.inRange ?? 0);
-  const questions = {
-    inRange: questionsInRange,
-    older: (questionRow?.total ?? 0) - questionsInRange,
+  const unansweredInRange = Number(unansweredRow?.inRange ?? 0);
+  const unansweredComments = {
+    inRange: unansweredInRange,
+    older: (unansweredRow?.total ?? 0) - unansweredInRange,
   };
 
   // Gross revenue, the platform's fee and the instructor's net for the range.
@@ -982,9 +981,9 @@ export async function loader({ request, url }: Route.LoaderArgs) {
           .get();
 
   return {
-    // Split rather than filtered: the range applies, but questions older than
+    // Split rather than filtered: the range applies, but comments older than
     // it are still reported, because months of silence is the urgent case.
-    questions,
+    unansweredComments,
     audience,
     buyers: getTopBuyers(instructorId, range),
     ratings: getRatingSummary(instructorId, range),
@@ -1522,7 +1521,7 @@ export default function InstructorAnalytics({
     unpublished,
     audience,
     buyers,
-    questions,
+    unansweredComments,
     ratings,
   } = loaderData;
 
@@ -1674,27 +1673,30 @@ export default function InstructorAnalytics({
                 emptyHint="Nobody has enrolled in this period."
               />
               <StatCard
-                label="Unanswered questions"
-                value={questions.inRange}
+                label="Unanswered comments"
+                value={unansweredComments.inRange}
                 hint={
-                  questions.older > 0
-                    ? `Plus ${questions.older} from before this period.`
-                    : "Students waiting on a reply."
+                  unansweredComments.older > 0
+                    ? `Plus ${unansweredComments.older} from before this period.`
+                    : "Students who still need a reply."
                 }
                 // Quiet this period is only good news if the backlog is empty
                 // too, so the older count keeps its place in the empty copy.
                 emptyHint={
-                  questions.older > 0
-                    ? `None this period, but ${questions.older} still waiting from before.`
-                    : "Nothing is waiting on you."
+                  unansweredComments.older > 0
+                    ? `None this period, but ${pluralize(
+                        unansweredComments.older,
+                        "older comment"
+                      )} ${unansweredComments.older === 1 ? "is" : "are"} still unanswered.`
+                    : "You have no unanswered comments."
                 }
                 action={
-                  questions.inRange + questions.older > 0 ? (
+                  unansweredComments.inRange + unansweredComments.older > 0 ? (
                     <Link
-                      to="/instructor/questions"
+                      to="/instructor/comments"
                       className="mt-3 inline-block text-xs font-medium text-primary hover:underline"
                     >
-                      Answer them
+                      Answer comments
                     </Link>
                   ) : null
                 }

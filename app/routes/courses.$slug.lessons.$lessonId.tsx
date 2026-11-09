@@ -397,7 +397,7 @@ function getLessonThread(lessonId: number): ThreadComment[] {
     byId.get(row.parentId)?.replies.push(toThreadComment(row));
   }
 
-  // A deleted question with no replies left has nothing worth showing.
+  // A deleted comment with no replies left has nothing worth showing.
   return topLevel.filter((c) => !c.deleted || c.replies.length > 0);
 }
 
@@ -766,7 +766,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     access;
 
   // Comments are confidential to the course: only people who can read the
-  // lesson can read the discussion on it.
+  // lesson can read the comments on it.
   const instructor = getUserById(course.instructorId);
   const comments = canViewContent
     ? await renderThread(getLessonThread(lessonId))
@@ -1240,7 +1240,7 @@ export default function LessonViewer({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          {/* Questions & Discussion — confidential to people with access */}
+          {/* Comments — confidential to people with access */}
           {canViewContent && (
             <CommentThread
               comments={comments}

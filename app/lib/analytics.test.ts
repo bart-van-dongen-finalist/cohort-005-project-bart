@@ -110,7 +110,7 @@ describe("analytics config", () => {
 
     it("starts each window exactly that many days back", () => {
       // Every panel on the page compares against this one boundary, so the
-      // service and the question queue can't disagree about what "30 days"
+      // service and the unanswered-comments queue can't disagree about what "30 days"
       // means. Inclusive: a row stamped exactly here is inside.
       expect(rangeStart("7d")).toBe("2026-06-08T12:00:00.000Z");
       expect(rangeStart("30d")).toBe("2026-05-16T12:00:00.000Z");

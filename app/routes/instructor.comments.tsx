@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, data, isRouteErrorResponse, useFetcher } from "react-router";
 import { toast } from "sonner";
 import { z } from "zod";
-import type { Route } from "./+types/instructor.questions";
+import type { Route } from "./+types/instructor.comments";
 import { requireStaffRole, requireStaff } from "~/lib/access.server";
 import { renderComment } from "~/lib/comment-markdown.server";
 import { Button } from "~/components/ui/button";
@@ -13,6 +13,7 @@ import { UserAvatar } from "~/components/user-avatar";
 import { AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
 import { cn, daysSince, formatRelativeTime } from "~/lib/utils";
 import { MIN_COMMENT_LENGTH, MAX_COMMENT_LENGTH } from "~/lib/comments";
+import { pluralize } from "~/lib/pluralize";
 import { parseFormData } from "~/lib/validation";
 import { db } from "~/db";
 import {
@@ -26,7 +27,7 @@ import {
 import { eq, ne, or, and, isNull, notExists, sql, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 
-type QueuedQuestion = {
+type QueuedComment = {
   id: number;
   body: string;
   createdAt: string;
@@ -39,12 +40,12 @@ type QueuedQuestion = {
   authorAvatarUrl: string | null;
 };
 
-function getUnansweredQuestions(instructorId: number | null): QueuedQuestion[] {
+function getUnansweredComments(instructorId: number | null): QueuedComment[] {
   const author = alias(users, "author");
   const reply = alias(comments, "reply");
   const replyAuthor = alias(users, "reply_author");
 
-  // Correlated: matches a live reply, by staff, to the outer question.
+  // Correlated: matches a live reply, by Staff, to the outer comment.
   const staffReply = db
     .select({ one: sql`1` })
     .from(reply)
@@ -63,7 +64,7 @@ function getUnansweredQuestions(instructorId: number | null): QueuedQuestion[] {
   const conditions = [
     isNull(comments.parentId),
     isNull(comments.deletedAt),
-    // Staff asking their own question shouldn't queue up as work for themselves.
+    // Staff posting their own comment shouldn't queue up as work for themselves.
     ne(author.role, UserRole.Admin),
     ne(comments.userId, courses.instructorId),
     notExists(staffReply),
@@ -156,7 +157,7 @@ function createComment(
     .get();
 }
 
-// A question sitting this long without an answer gets called out visually.
+// A comment left unanswered this long gets called out visually.
 const STALE_AFTER_DAYS = 3;
 
 const replySchema = z.object({
@@ -166,23 +167,23 @@ const replySchema = z.object({
 });
 
 export function meta() {
-  return [{ title: "Unanswered Questions — Cadence" }];
+  return [{ title: "Unanswered comments — Cadence" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { userId, isAdmin } = await requireStaffRole(request);
 
   // Admins span every course; instructors see only the courses they own.
-  const questions = getUnansweredQuestions(isAdmin ? null : userId);
+  const unansweredComments = getUnansweredComments(isAdmin ? null : userId);
 
   const rendered = await Promise.all(
-    questions.map(async (question) => ({
-      ...question,
-      bodyHtml: await renderComment(question.body),
+    unansweredComments.map(async (comment) => ({
+      ...comment,
+      bodyHtml: await renderComment(comment.body),
     }))
   );
 
-  return { questions: rendered, isAdmin };
+  return { unansweredComments: rendered, isAdmin };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -193,25 +194,24 @@ export async function action({ request }: Route.ActionArgs) {
     return { ok: false, error: "Enter a reply before posting." };
   }
 
-  const question = getCommentById(parsed.data.commentId);
-  if (!question) {
-    throw data("Question not found", { status: 404 });
+  const comment = getCommentById(parsed.data.commentId);
+  if (!comment) {
+    throw data("Comment not found.", { status: 404 });
   }
 
-  const course = getCourseForLesson(question.lessonId);
+  const course = getCourseForLesson(comment.lessonId);
   if (!course) {
     throw data("Course not found", { status: 404 });
   }
 
-  // Answering as the course's voice — so it must be the course's own
-  // instructor, or an admin.
+  // Replying as the course's voice — so it must be Staff on this course.
   const access = await requireStaff(request, course.courseId);
 
   try {
     createComment(
       access.userId!,
-      question.lessonId,
-      question.id,
+      comment.lessonId,
+      comment.id,
       parsed.data.body
     );
   } catch (error) {
@@ -224,13 +224,15 @@ export async function action({ request }: Route.ActionArgs) {
   return { ok: true };
 }
 
-type Question = Awaited<ReturnType<typeof loader>>["questions"][number];
+type UnansweredComment = Awaited<
+  ReturnType<typeof loader>
+>["unansweredComments"][number];
 
-function QuestionCard({ question }: { question: Question }) {
+function UnansweredCommentCard({ comment }: { comment: UnansweredComment }) {
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
   const [body, setBody] = useState("");
-  const waitingDays = daysSince(question.createdAt);
-  const stale = waitingDays >= STALE_AFTER_DAYS;
+  const daysUnanswered = daysSince(comment.createdAt);
+  const stale = daysUnanswered >= STALE_AFTER_DAYS;
   const submitting = fetcher.state !== "idle";
 
   useEffect(() => {
@@ -249,12 +251,12 @@ function QuestionCard({ question }: { question: Question }) {
       <CardContent className="p-6">
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">
-            {question.courseTitle}
+            {comment.courseTitle}
           </span>
           <span>/</span>
-          <span>{question.lessonTitle}</span>
+          <span>{comment.lessonTitle}</span>
           <Link
-            to={`/courses/${question.courseSlug}/lessons/${question.lessonId}`}
+            to={`/courses/${comment.courseSlug}/lessons/${comment.lessonId}`}
             className="inline-flex items-center gap-1 hover:text-foreground"
           >
             <ExternalLink className="size-3.5" />
@@ -270,46 +272,46 @@ function QuestionCard({ question }: { question: Question }) {
             )}
             suppressHydrationWarning
           >
-            {waitingDays === 0
-              ? "Waiting today"
-              : `Waiting ${waitingDays} day${waitingDays === 1 ? "" : "s"}`}
+            {daysUnanswered === 0
+              ? "Unanswered today"
+              : `Unanswered for ${pluralize(daysUnanswered, "day")}`}
           </span>
         </div>
 
         <div className="flex items-start gap-3">
           <UserAvatar
-            name={question.authorName}
-            avatarUrl={question.authorAvatarUrl}
+            name={comment.authorName}
+            avatarUrl={comment.authorAvatarUrl}
             className="size-8 shrink-0"
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">{question.authorName}</span>
+              <span className="text-sm font-medium">{comment.authorName}</span>
               <span
                 className="text-xs text-muted-foreground"
                 suppressHydrationWarning
               >
-                {formatRelativeTime(question.createdAt)}
+                {formatRelativeTime(comment.createdAt)}
               </span>
             </div>
             <div
               className="prose prose-sm prose-neutral dark:prose-invert mt-1 max-w-none"
-              dangerouslySetInnerHTML={{ __html: question.bodyHtml }}
+              dangerouslySetInnerHTML={{ __html: comment.bodyHtml }}
             />
           </div>
         </div>
 
         <fetcher.Form method="post" className="mt-4 space-y-2">
           <input type="hidden" name="intent" value="reply" />
-          <input type="hidden" name="commentId" value={question.id} />
+          <input type="hidden" name="commentId" value={comment.id} />
 
           <Textarea
             name="body"
             value={body}
             onChange={(event) => setBody(event.target.value)}
-            placeholder="Answer this question..."
+            placeholder="Reply to this comment..."
             rows={3}
-            aria-label={`Reply to ${question.authorName}`}
+            aria-label={`Reply to ${comment.authorName}`}
           />
 
           <div className="flex items-center gap-3">
@@ -341,10 +343,10 @@ function QuestionCard({ question }: { question: Question }) {
   );
 }
 
-export default function InstructorQuestions({
+export default function InstructorComments({
   loaderData,
 }: Route.ComponentProps) {
-  const { questions, isAdmin } = loaderData;
+  const { unansweredComments, isAdmin } = loaderData;
 
   return (
     <div className="mx-auto max-w-4xl p-6 lg:p-8">
@@ -357,33 +359,33 @@ export default function InstructorQuestions({
           {isAdmin ? "Manage Courses" : "My Courses"}
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-foreground">Questions</span>
+        <span className="text-foreground">Comments</span>
       </nav>
 
       <div className="mb-6">
-        <h1 className="text-3xl font-bold">Unanswered Questions</h1>
+        <h1 className="text-3xl font-bold">Unanswered comments</h1>
         <p className="mt-1 text-muted-foreground">
           {isAdmin
-            ? "Questions across every course that no instructor or admin has replied to yet."
-            : "Questions on your courses that you haven't replied to yet."}{" "}
+            ? "Comments across every course that no staff member has replied to yet."
+            : "Comments on your courses that you haven't replied to yet."}{" "}
           Replying here marks them answered.
         </p>
       </div>
 
-      {questions.length === 0 ? (
+      {unansweredComments.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="mx-auto mb-4 size-12 text-green-600" />
             <p className="font-medium">You&apos;re all caught up</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Every question on your courses has an answer.
+              Every comment on your courses has been answered.
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
-          {questions.map((question) => (
-            <QuestionCard key={question.id} question={question} />
+          {unansweredComments.map((comment) => (
+            <UnansweredCommentCard key={comment.id} comment={comment} />
           ))}
         </div>
       )}
@@ -407,7 +409,7 @@ export function HydrateFallback() {
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let title = "Something went wrong";
-  let message = "An unexpected error occurred while loading your questions.";
+  let message = "An unexpected error occurred while loading your comments.";
 
   if (isRouteErrorResponse(error)) {
     if (error.status === 401) {
