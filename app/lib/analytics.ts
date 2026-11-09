@@ -69,7 +69,7 @@ const MONTHS = [
 /**
  * Cents as money — always with the cents shown, and always with a currency
  * symbol. Deliberately not `formatPrice`, which renders 0 as "Free": a day
- * with no sales is $0.00, not free.
+ * with no purchases is $0.00, not free.
  */
 export function formatMoney(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", {

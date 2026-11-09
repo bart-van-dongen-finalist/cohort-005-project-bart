@@ -280,7 +280,7 @@ export default function Redeem({
                 className="w-full max-w-sm"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Enrolling..." : "Enroll Now"}
+                {isSubmitting ? "Enrolling..." : "Enroll"}
               </Button>
             </fetcher.Form>
           )}

@@ -271,7 +271,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   const title = loaderData?.course?.title ?? "Purchase";
   return [
     { title: `Confirm Purchase: ${title} — Cadence` },
-    { name: "description", content: `Confirm your enrollment in ${title}` },
+    { name: "description", content: `Confirm your purchase of ${title}` },
   ];
 }
 
@@ -421,7 +421,7 @@ export default function PurchaseConfirmation({
 
       <h1 className="mb-2 text-2xl font-bold">Confirm Your Purchase</h1>
       <p className="mb-8 text-muted-foreground">
-        Review the details below before enrolling.
+        Review the details below before buying.
       </p>
 
       <Card>
@@ -485,16 +485,16 @@ export default function PurchaseConfirmation({
               {!isEnrolled && (
                 <TabsList className="mb-6 w-full">
                   <TabsTrigger value="self" className="flex-1">
-                    Buy for Myself
+                    Buy for myself
                   </TabsTrigger>
                   <TabsTrigger value="team" className="flex-1">
-                    Buy for Your Team
+                    Buy for my team
                   </TabsTrigger>
                 </TabsList>
               )}
 
               <TabsContentNoShift>
-                {/* Buy for Myself */}
+                {/* Buy for myself */}
                 {!isEnrolled && (
                   <TabsContent value="self" forceMount>
                     <div className="flex items-center justify-between">
@@ -546,7 +546,7 @@ export default function PurchaseConfirmation({
                   </TabsContent>
                 )}
 
-                {/* Buy for Your Team */}
+                {/* Buy for my team */}
                 <TabsContent value="team" forceMount>
                   <div className="space-y-6">
                     {/* Quantity selector */}

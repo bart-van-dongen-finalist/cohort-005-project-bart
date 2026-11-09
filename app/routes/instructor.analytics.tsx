@@ -127,7 +127,7 @@ type TopBuyer = {
   userId: number;
   name: string;
   email: string;
-  spendCents: number;
+  paidCents: number;
   purchaseCount: number;
   seatsBought: number;
   seatsUnredeemed: number;
@@ -318,7 +318,7 @@ function getTopBuyers(
       userId: users.id,
       name: users.name,
       email: users.email,
-      spend: sum(purchases.amountPaid),
+      paid: sum(purchases.amountPaid),
       purchaseCount: count(purchases.id),
     })
     .from(purchases)
@@ -335,8 +335,8 @@ function getTopBuyers(
   const buyerIds = buyers.map((buyer) => buyer.userId);
 
   // Seats are counted in their own query: joining coupons to purchases above
-  // would repeat each purchase once per seat and multiply the spend the
-  // leaderboard ranks on.
+  // would repeat each purchase once per seat and multiply the amount paid
+  // that the leaderboard ranks on.
   const seats = db
     .select({
       userId: purchases.userId,
@@ -373,7 +373,7 @@ function getTopBuyers(
     userId: buyer.userId,
     name: buyer.name,
     email: buyer.email,
-    spendCents: Number(buyer.spend ?? 0),
+    paidCents: Number(buyer.paid ?? 0),
     purchaseCount: buyer.purchaseCount,
     seatsBought: seatsByUser.get(buyer.userId)?.bought ?? 0,
     seatsUnredeemed: Number(seatsByUser.get(buyer.userId)?.unredeemed ?? 0),
@@ -455,7 +455,7 @@ function getRevenueOverTime(
   );
 
   const now = new Date().toISOString();
-  // A fixed range always spans its whole window, even before the first sale;
+  // A fixed range always spans its whole window, even before the first purchase;
   // all time can only start where the data does.
   const start = rangeStart(range) ?? rows[0].bucket;
 
@@ -902,7 +902,7 @@ export async function loader({ request, url }: Route.LoaderArgs) {
     purchaseCount: summaryRow?.purchaseCount ?? 0,
   };
 
-  // Revenue broken down by course, biggest earner first. Courses with no sales
+  // Revenue broken down by course, biggest earner first. Courses with no purchases
   // in the range are absent rather than listed at zero.
   const courseRevenueRows = db
     .select({
@@ -1114,7 +1114,7 @@ function TopBuyers({
           <th className="pb-2 font-medium">Buyer</th>
           <th className="pb-2 font-medium">Seats</th>
           <th className="pb-2 text-right font-medium">Purchases</th>
-          <th className="pb-2 text-right font-medium">Total spend</th>
+          <th className="pb-2 text-right font-medium">Total paid</th>
         </tr>
       </thead>
       <tbody>
@@ -1155,7 +1155,7 @@ function TopBuyers({
               {buyer.purchaseCount}
             </td>
             <td className="py-3 text-right font-medium tabular-nums">
-              {formatMoney(buyer.spendCents)}
+              {formatMoney(buyer.paidCents)}
             </td>
           </tr>
         ))}
@@ -1426,7 +1426,7 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
   if (breakdown.rows.length === 0) {
     return (
       <p className="py-12 text-center text-sm text-muted-foreground">
-        This course has no sales in this period, so there is nowhere to break
+        This course has no purchases in this period, so there is nowhere to break
         down yet.
       </p>
     );
@@ -1441,14 +1441,14 @@ function RevenueByCountry({ breakdown }: { breakdown: CourseCountryRevenue }) {
         {formatMoney(breakdown.discountedNetCents)} of your{" "}
         {formatMoney(breakdown.netCents)} net earnings (
         {breakdown.discountedSharePercent}%) came from countries with a parity
-        discount. Averages are what a sale there actually fetched — list prices
+        discount. Averages are what a purchase there actually fetched — list prices
         change and are not kept, so no discount is reconstructed per purchase.
       </p>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
             <th className="pb-2 font-medium">Country</th>
-            <th className="pb-2 text-right font-medium">Sales</th>
+            <th className="pb-2 text-right font-medium">Purchases</th>
             <th className="pb-2 text-right font-medium">Average paid</th>
             <th className="pb-2 text-right font-medium">Gross</th>
             <th className="pb-2 text-right font-medium">Net</th>
@@ -1540,7 +1540,7 @@ export default function InstructorAnalytics({
   const selectedCourse =
     courseOptions.find((course) => course.courseId === selectedCourseId) ??
     null;
-  // The revenue table narrows to the selected course. One with no sales in the
+  // The revenue table narrows to the selected course. One with no purchases in the
   // range has no row at all, and the panel says so rather than sitting empty.
   const revenueRows = selectedCourse
     ? courses.filter((course) => course.courseId === selectedCourseId)
@@ -1615,8 +1615,8 @@ export default function InstructorAnalytics({
             <Rocket className="mx-auto mb-4 size-12 text-muted-foreground" />
             <p className="font-medium">No published courses yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-              Analytics start the moment you make your first sale. Publish your
-              first course to get going.
+              Analytics start with the first purchase of one of your courses.
+              Publish your first course to get going.
             </p>
             <Link to="/instructor/new" className="mt-6 inline-block">
               <Button>Publish your first course</Button>
@@ -1712,13 +1712,13 @@ export default function InstructorAnalytics({
                 <h2 className="mb-4 text-lg font-semibold">
                   Revenue over time
                 </h2>
-                {/* Keyed on the sales themselves, not on the points: a fixed
+                {/* Keyed on the purchases themselves, not on the points: a fixed
                     range always spans its whole window, so an instructor with
-                    no sales would otherwise get a flat line along zero rather
+                    no purchases would otherwise get a flat line along zero rather
                     than being told there is nothing there. */}
                 {summary.purchaseCount === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No sales in this period yet.
+                    No purchases in this period yet.
                   </p>
                 ) : (
                   <RevenueChart series={series} />
@@ -1840,14 +1840,14 @@ export default function InstructorAnalytics({
               <CardContent className="p-6">
                 {revenueRows.length === 0 ? (
                   <p className="py-12 text-center text-sm text-muted-foreground">
-                    No sales in this period yet.
+                    No purchases in this period yet.
                   </p>
                 ) : (
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b text-left text-muted-foreground">
                         <th className="pb-2 font-medium">Course</th>
-                        <th className="pb-2 text-right font-medium">Sales</th>
+                        <th className="pb-2 text-right font-medium">Purchases</th>
                         <th className="pb-2 text-right font-medium">Gross</th>
                         <th className="pb-2 text-right font-medium">
                           Fee ({PLATFORM_FEE_PERCENT}%)

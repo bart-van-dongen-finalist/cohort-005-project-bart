@@ -733,14 +733,14 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
     </div>
   );
 
-  const enrollButton = (
+  const buyButtons = (
     <Tabs defaultValue="self">
       <TabsList className="mb-4 w-full">
         <TabsTrigger value="self" className="flex-1 text-xs">
-          Buy for Myself
+          Buy for myself
         </TabsTrigger>
         <TabsTrigger value="team" className="flex-1 text-xs">
-          Buy for Team
+          Buy for my team
         </TabsTrigger>
       </TabsList>
       <TabsContentNoShift>
@@ -748,7 +748,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           {priceDisplay}
           <Link to={selfPurchaseLink}>
             <Button size="lg" className="w-full">
-              Enroll Now — {pppPriceLabel}
+              Buy now — {pppPriceLabel}
             </Button>
           </Link>
         </TabsContent>
@@ -756,7 +756,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           {priceDisplay}
           <Link to={teamPurchaseLink}>
             <Button size="lg" variant="outline" className="w-full">
-              Buy for Your Team
+              Buy for my team
             </Button>
           </Link>
         </TabsContent>
@@ -842,12 +842,12 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           {!enrolled && !isInstructor && (
             <div className="mt-8 rounded-lg border bg-muted/50 p-6">
               <h3 className="mb-2 text-lg font-semibold">
-                Ready to get started?
+                Ready to start learning?
               </h3>
               <p className="mb-4 text-sm text-muted-foreground">
-                Join this course and start learning today.
+                Buy this course and start today.
               </p>
-              {enrollButton}
+              {buyButtons}
             </div>
           )}
 
@@ -861,7 +861,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* Right column: progress/enrollment card */}
+        {/* Right column: progress or buy card */}
         <div className="space-y-6">
           <Card className="sticky top-6">
             <CardHeader>
@@ -870,7 +870,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                   ? "Your Course"
                   : enrolled
                     ? "Your Progress"
-                    : "Get Started"}
+                    : "Buy this course"}
               </h2>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -924,7 +924,7 @@ export default function CourseDetail({ loaderData }: Route.ComponentProps) {
                   )}
                 </>
               ) : (
-                enrollButton
+                buyButtons
               )}
               <div className="space-y-2 pt-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
